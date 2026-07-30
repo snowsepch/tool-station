@@ -37,39 +37,72 @@
 
   .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 64px; }
 
-  header {
-    background: var(--header-bg);
-    border-bottom: 1px solid var(--line);
-    box-shadow: 0 6px 16px -12px var(--shadow-soft), 0 1px 0 var(--shadow-soft);
-    padding: max(28px, env(safe-area-inset-top)) 20px 24px;
+  @keyframes riseIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  header .wrap { padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  @media (prefers-reduced-motion: reduce) {
+    .tool-card, .coming-soon, header .wrap { animation: none !important; }
+  }
+
+  header {
+    background: linear-gradient(180deg, var(--header-bg) 0%, var(--body-bg) 100%);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 6px 16px -12px var(--shadow-soft), 0 1px 0 var(--shadow-soft);
+    padding: max(36px, env(safe-area-inset-top)) 20px 32px;
+  }
+
+  header .wrap {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: riseIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 
   header .kicker {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     font-size: 12px;
     font-weight: 700;
     color: var(--accent);
   }
 
+  header .kicker .kicker-badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    background: var(--accent-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  header .kicker .kicker-badge i { font-size: 13px; color: var(--accent); }
+
   header h1 {
-    margin: 2px 0 0;
-    font-size: 26px;
+    margin: 4px 0 0;
+    font-size: 28px;
     font-weight: 900;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.4px;
   }
 
   header p.sub {
     margin: 0;
-    font-size: 13.5px;
+    font-size: 14px;
+    line-height: 1.6;
     color: var(--sub-ink);
     max-width: 46ch;
   }
 
-  main { padding-top: 28px; }
+  @media (min-width: 640px) {
+    header { padding: max(48px, env(safe-area-inset-top)) 20px 40px; }
+    header h1 { font-size: 32px; }
+  }
+
+  main { padding-top: 32px; }
 
   .section-title {
     display: flex;
@@ -79,6 +112,8 @@
     font-weight: 900;
     margin: 0 0 14px;
   }
+
+  .section-title:not(:first-child) { margin-top: 8px; }
 
   .section-title i { font-size: 18px; color: var(--accent); }
 
@@ -92,44 +127,55 @@
   .tool-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px;
-    margin-bottom: 40px;
+    gap: 18px;
+    margin-bottom: 44px;
   }
 
   .tool-card {
     background: #FFFFFF;
     border: 1px solid var(--card-line);
-    border-radius: 16px;
-    padding: 20px;
+    border-radius: 18px;
+    padding: 22px;
     box-shadow: 0 3px 12px var(--shadow-soft);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 13px;
+    animation: riseIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: 0.08s;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+  }
+
+  @media (hover: hover) {
+    .tool-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 26px -10px rgba(23, 54, 48, 0.18);
+      border-color: var(--accent);
+    }
   }
 
   .tool-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
     background: var(--accent-bg);
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .tool-icon i { font-size: 22px; color: var(--accent); }
+  .tool-icon i { font-size: 23px; color: var(--accent); }
 
   .tool-card h3 {
     margin: 0;
-    font-size: 16.5px;
+    font-size: 17px;
     font-weight: 900;
     letter-spacing: -0.2px;
   }
 
   .tool-card p {
     margin: 0;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 13.5px;
+    line-height: 1.65;
     color: var(--sub-ink);
     flex: 1;
   }
@@ -141,8 +187,8 @@
     align-items: center;
     gap: 6px;
     border-radius: 999px;
-    padding: 9px 16px;
-    min-height: 40px;
+    padding: 10px 18px;
+    min-height: 44px;
     font-size: 13px;
     font-weight: 700;
     font-family: inherit;
@@ -150,6 +196,7 @@
     cursor: pointer;
     text-decoration: none;
     white-space: nowrap;
+    transition: transform 0.15s ease, filter 0.15s ease;
   }
 
   .btn:active { transform: scale(0.97); }
@@ -159,19 +206,26 @@
   .btn-primary { background: var(--ink); color: #FFFFFF; }
   .btn-ghost { background: var(--accent-bg); color: var(--accent-deep); }
 
+  @media (hover: hover) {
+    .btn-primary:hover { filter: brightness(1.15); }
+    .btn-ghost:hover { filter: brightness(0.97); }
+  }
+
   /* ---------- Coming soon ---------- */
   .coming-soon {
     border: 1.5px dashed var(--card-line);
-    border-radius: 16px;
-    padding: 28px 20px;
+    border-radius: 18px;
+    padding: 32px 20px;
     text-align: center;
     color: var(--sub-ink);
     background: #FFFFFF;
+    animation: riseIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: 0.16s;
   }
 
-  .coming-soon i { font-size: 24px; color: var(--tertiary-ink); margin-bottom: 8px; display: block; }
+  .coming-soon i { font-size: 26px; color: var(--tertiary-ink); margin-bottom: 10px; display: block; }
 
-  .coming-soon strong { display: block; font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+  .coming-soon strong { display: block; font-size: 14.5px; color: var(--ink); margin-bottom: 4px; }
 
   .coming-soon span { font-size: 12.5px; }
 
@@ -179,7 +233,20 @@
     text-align: center;
     font-size: 12px;
     color: var(--tertiary-ink);
-    padding: 24px 0 0;
+    padding: 28px 0 0;
+  }
+
+  footer .feedback-line { margin: 0 0 14px; }
+
+  footer .by-asc {
+    margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--card-line);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--tertiary-ink);
   }
 
   /* ---------- Personalize modal ---------- */
@@ -411,7 +478,10 @@
 
 <header>
   <div class="wrap">
-    <span class="kicker"><i class="ph ph-toolbox"></i>Apple Shop 通用工具</span>
+    <span class="kicker">
+      <span class="kicker-badge"><i class="ph ph-toolbox"></i></span>
+      Apple Shop 通用工具
+    </span>
     <h1>夥伴工具站</h1>
     <p class="sub">不限特定門市或通路，通用工具集散地。開啟就能用，也能加上個人化設定，變成自己專屬的版本。</p>
   </div>
@@ -429,7 +499,10 @@
     <span>之後會陸續把不綁門市的工具加進來，敬請期待。</span>
   </div>
 
-  <footer>有想加入工具站的通用工具，或發現問題，跟我說一聲。</footer>
+  <footer>
+    <p class="feedback-line">有想加入工具站的通用工具，或發現問題，跟我說一聲。</p>
+    <p class="by-asc">By ASC</p>
+  </footer>
 </main>
 
 <div class="modal-backdrop" data-modal-backdrop>
@@ -476,17 +549,32 @@
       icon: "ph-graduation-cap",
       baseUrl: "https://snowsepch.github.io/newbie-manual/",
       personalize: {
-        subtitle: "設定暱稱與常用分類，產生你自己的捷徑連結",
+        subtitle: "設定暱稱、常用分類與顯示方式，產生你自己的捷徑連結",
         fields: [
           { key: "name", type: "text", label: "暱稱（選填）", placeholder: "例如：小美", maxlength: 12 },
           {
-            key: "cat", type: "chips", label: "預設打開分類（選填）",
+            key: "cat", type: "chips", label: "預設打開分類",
             options: [
               { value: "", label: "不指定" },
               { value: "mac", label: "Mac" },
               { value: "ipad", label: "iPad" },
               { value: "iphone", label: "iPhone" },
               { value: "watch", label: "Apple Watch" }
+            ]
+          },
+          {
+            key: "theme", type: "chips", label: "顯示主題",
+            options: [
+              { value: "", label: "跟隨系統" },
+              { value: "light", label: "淺色" },
+              { value: "dark", label: "深色" }
+            ]
+          },
+          {
+            key: "text", type: "chips", label: "文字大小",
+            options: [
+              { value: "", label: "標準" },
+              { value: "large", label: "大字模式" }
             ]
           }
         ]
