@@ -19,9 +19,10 @@
     --card-line: #EFEBE1;
     --shadow-soft: rgba(64, 54, 38, 0.06);
     --ring: #1D4ED8;
-    --accent: #2F6B5E;        /* 深松綠，工具站專屬主色，與 store-hub 橘/youchang-hub 藍區隔 */
-    --accent-bg: #E3EDE9;
-    --accent-deep: #173630;
+    --accent: #2B6357;         /* 深松綠，工具站專屬主色，比初版更飽和有質感 */
+    --accent-bg: #DCEBE4;      /* 清新薄荷底，圖示徽章用 */
+    --accent-deep: #12332C;    /* 深綠錠，承載文字/hover邊框 */
+    --accent-soft: #EFF6F2;    /* 極淡薄荷洗色，即將上架卡等大面積淡底用 */
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -74,7 +75,7 @@
     width: 22px;
     height: 22px;
     border-radius: 7px;
-    background: var(--accent-bg);
+    background: linear-gradient(135deg, var(--accent-bg) 0%, #C7E2D6 100%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -148,7 +149,7 @@
   @media (hover: hover) {
     .tool-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 12px 26px -10px rgba(23, 54, 48, 0.18);
+      box-shadow: 0 12px 26px -10px rgba(18, 51, 44, 0.22);
       border-color: var(--accent);
     }
   }
@@ -157,13 +158,13 @@
     width: 46px;
     height: 46px;
     border-radius: 13px;
-    background: var(--accent-bg);
+    background: linear-gradient(135deg, var(--accent-bg) 0%, #C7E2D6 100%);
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .tool-icon i { font-size: 23px; color: var(--accent); }
+  .tool-icon i { font-size: 23px; color: var(--accent-deep); }
 
   .tool-card h3 {
     margin: 0;
@@ -218,7 +219,7 @@
     padding: 32px 20px;
     text-align: center;
     color: var(--sub-ink);
-    background: #FFFFFF;
+    background: linear-gradient(180deg, var(--accent-soft) 0%, #FFFFFF 100%);
     animation: riseIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: 0.16s;
   }
@@ -549,9 +550,11 @@
       icon: "ph-graduation-cap",
       baseUrl: "https://snowsepch.github.io/newbie-manual/",
       personalize: {
-        subtitle: "設定暱稱、常用分類與顯示方式，產生你自己的捷徑連結",
+        subtitle: "填上暱稱、門市、常用分類，或自己寫一句話，產生你自己的捷徑連結",
         fields: [
           { key: "name", type: "text", label: "暱稱（選填）", placeholder: "例如：小美", maxlength: 12 },
+          { key: "store", type: "text", label: "門市名稱（選填）", placeholder: "例如：右昌店", maxlength: 20 },
+          { key: "note", type: "text", label: "自訂顯示文字（選填，想寫什麼都可以）", placeholder: "例如：交機前再看一次", maxlength: 40 },
           {
             key: "cat", type: "chips", label: "預設打開分類",
             options: [
