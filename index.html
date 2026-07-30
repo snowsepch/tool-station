@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>夥伴工具站 | Apple Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<style>
+  :root {
+    --header-bg: #F7F4ED;
+    --body-bg: #FBFAF6;
+    --ink: #221D18;
+    --sub-ink: #6E6862;
+    --tertiary-ink: #9C958C;
+    --line: #EAE4D6;
+    --card-line: #EFEBE1;
+    --shadow-soft: rgba(64, 54, 38, 0.06);
+    --ring: #1D4ED8;
+    --accent: #2F6B5E;        /* 深松綠，工具站專屬主色，與 store-hub 橘/youchang-hub 藍區隔 */
+    --accent-bg: #E3EDE9;
+    --accent-deep: #173630;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--body-bg);
+    color: var(--ink);
+    font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 64px; }
+
+  header {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 6px 16px -12px var(--shadow-soft), 0 1px 0 var(--shadow-soft);
+    padding: max(28px, env(safe-area-inset-top)) 20px 24px;
+  }
+
+  header .wrap { padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+  header .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  header h1 {
+    margin: 2px 0 0;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.3px;
+  }
+
+  header p.sub {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--sub-ink);
+    max-width: 46ch;
+  }
+
+  main { padding-top: 28px; }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 900;
+    margin: 0 0 14px;
+  }
+
+  .section-title i { font-size: 18px; color: var(--accent); }
+
+  .section-note {
+    margin: -8px 0 16px;
+    font-size: 12.5px;
+    color: var(--sub-ink);
+  }
+
+  /* ---------- Tool card grid ---------- */
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .tool-card {
+    background: #FFFFFF;
+    border: 1px solid var(--card-line);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 3px 12px var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tool-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tool-icon i { font-size: 22px; color: var(--accent); }
+
+  .tool-card h3 {
+    margin: 0;
+    font-size: 16.5px;
+    font-weight: 900;
+    letter-spacing: -0.2px;
+  }
+
+  .tool-card p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--sub-ink);
+    flex: 1;
+  }
+
+  .tool-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 9px 16px;
+    min-height: 40px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  .btn-primary { background: var(--ink); color: #FFFFFF; }
+  .btn-ghost { background: var(--accent-bg); color: var(--accent-deep); }
+
+  /* ---------- Coming soon ---------- */
+  .coming-soon {
+    border: 1.5px dashed var(--card-line);
+    border-radius: 16px;
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--sub-ink);
+    background: #FFFFFF;
+  }
+
+  .coming-soon i { font-size: 24px; color: var(--tertiary-ink); margin-bottom: 8px; display: block; }
+
+  .coming-soon strong { display: block; font-size: 14px; color: var(--ink); margin-bottom: 4px; }
+
+  .coming-soon span { font-size: 12.5px; }
+
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--tertiary-ink);
+    padding: 24px 0 0;
+  }
+
+  /* ---------- Personalize modal ---------- */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 26, 26, 0.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 50;
+    padding: 0;
+  }
+
+  @media (min-width: 560px) {
+    .modal-backdrop { align-items: center; padding: 20px; }
+  }
+
+  .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  body.modal-open { overflow: hidden; }
+
+  .modal {
+    width: 100%;
+    max-width: 420px;
+    background: var(--body-bg);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 34px rgba(26, 26, 26, 0.16);
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 86vh;
+    overflow-y: auto;
+  }
+
+  @media (min-width: 560px) {
+    .modal { border-radius: 20px; transform: translateY(12px) scale(0.98); opacity: 0; transition: transform 0.22s ease, opacity 0.22s ease; }
+    .modal-backdrop.open .modal { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  .modal-backdrop.open .modal { transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .modal-backdrop, .modal { transition: none; }
+  }
+
+  .modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+
+  .modal-head h2 { margin: 0; font-size: 16.5px; font-weight: 900; }
+  .modal-head p { margin: 3px 0 0; font-size: 12.5px; color: var(--sub-ink); }
+
+  .modal-close {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #F1EEE5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .modal-close i { font-size: 16px; color: var(--sub-ink); }
+  .modal-close:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  .field { margin-top: 16px; }
+
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+
+  .field input[type="text"] {
+    width: 100%;
+    border: 1px solid var(--card-line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #FFFFFF;
+  }
+
+  .field input[type="text"]::placeholder { color: var(--tertiary-ink); }
+
+  .field input[type="text"]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .chip-option { position: relative; }
+
+  .chip-option input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; margin: 0; }
+
+  .chip-option span {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #FFFFFF;
+    border: 1px solid var(--card-line);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--sub-ink);
+  }
+
+  .chip-option input:checked + span {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
+
+  .chip-option input:focus-visible + span {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .generate-btn {
+    width: 100%;
+    margin-top: 18px;
+    background: var(--accent);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 900;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .generate-btn:active { transform: scale(0.98); }
+  .generate-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  .result-box {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--accent-bg);
+    display: none;
+  }
+
+  .result-box.show { display: block; }
+
+  .result-box .result-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent-deep);
+    margin-bottom: 8px;
+  }
+
+  .result-row { display: flex; gap: 8px; margin-bottom: 10px; }
+
+  .result-row input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--card-line);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #FFFFFF;
+  }
+
+  .copy-link-btn {
+    flex: 0 0 auto;
+    background: var(--ink);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .copy-link-btn.copied { background: var(--accent); }
+
+  .result-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .result-open-btn {
+    flex: 1;
+    text-align: center;
+    background: #FFFFFF;
+    border: 1px solid var(--accent);
+    color: var(--accent-deep);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .result-hint {
+    margin: 10px 0 0;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--accent-deep);
+    opacity: 0.85;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="kicker"><i class="ph ph-toolbox"></i>Apple Shop 通用工具</span>
+    <h1>夥伴工具站</h1>
+    <p class="sub">不限特定門市或通路，通用工具集散地。開啟就能用，也能加上個人化設定，變成自己專屬的版本。</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="section-title"><i class="ph ph-cube"></i>現有工具</div>
+  <div class="tool-grid" id="tool-grid"></div>
+
+  <div class="section-title"><i class="ph ph-hourglass"></i>即將上架</div>
+  <div class="coming-soon">
+    <i class="ph ph-sparkle"></i>
+    <strong>更多通用工具準備中</strong>
+    <span>之後會陸續把不綁門市的工具加進來，敬請期待。</span>
+  </div>
+
+  <footer>有想加入工具站的通用工具，或發現問題，跟我說一聲。</footer>
+</main>
+
+<div class="modal-backdrop" data-modal-backdrop>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head">
+      <div>
+        <h2 id="modal-title">個人化設定</h2>
+        <p data-modal-sub></p>
+      </div>
+      <button type="button" class="modal-close" data-modal-close aria-label="關閉">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
+
+    <div data-modal-fields></div>
+
+    <button type="button" class="generate-btn" data-generate-link>
+      <i class="ph ph-link-simple"></i>產生我的專屬連結
+    </button>
+
+    <div class="result-box" data-result-box>
+      <div class="result-label">你的專屬連結</div>
+      <div class="result-row">
+        <input type="text" readonly data-result-url />
+        <button type="button" class="copy-link-btn" data-copy-link>
+          <i class="ph ph-copy"></i>複製
+        </button>
+      </div>
+      <div class="result-actions">
+        <a class="result-open-btn" href="#" target="_blank" rel="noopener" data-result-open>開啟我的版本 →</a>
+      </div>
+      <p class="result-hint">提示：手機 Safari 打開後，點分享鈕再選「加入主畫面」，就會變成手機上的專屬捷徑。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 工具登錄表：日後新增通用工具只需在此加一筆，卡片與個人化表單會自動產生
+  const TOOLS = [
+    {
+      id: "newbie-manual",
+      name: "新人快速上手手冊",
+      desc: "17 款現役機型 30 秒速查，含記憶特色、Demo 情境、銷售話術，新人上線前快速惡補。",
+      icon: "ph-graduation-cap",
+      baseUrl: "https://snowsepch.github.io/newbie-manual/",
+      personalize: {
+        subtitle: "設定暱稱與常用分類，產生你自己的捷徑連結",
+        fields: [
+          { key: "name", type: "text", label: "暱稱（選填）", placeholder: "例如：小美", maxlength: 12 },
+          {
+            key: "cat", type: "chips", label: "預設打開分類（選填）",
+            options: [
+              { value: "", label: "不指定" },
+              { value: "mac", label: "Mac" },
+              { value: "ipad", label: "iPad" },
+              { value: "iphone", label: "iPhone" },
+              { value: "watch", label: "Apple Watch" }
+            ]
+          }
+        ]
+      }
+    }
+  ];
+
+  const gridEl = document.getElementById("tool-grid");
+
+  gridEl.innerHTML = TOOLS.map(t => `
+    <div class="tool-card">
+      <div class="tool-icon"><i class="ph ${t.icon}"></i></div>
+      <h3>${t.name}</h3>
+      <p>${t.desc}</p>
+      <div class="tool-actions">
+        <a class="btn btn-primary" href="${t.baseUrl}" target="_blank" rel="noopener">
+          <i class="ph ph-arrow-square-out"></i>開啟工具
+        </a>
+        <button type="button" class="btn btn-ghost" data-personalize="${t.id}">
+          <i class="ph ph-sliders-horizontal"></i>個人化設定
+        </button>
+      </div>
+    </div>
+  `).join("");
+
+  const backdrop = document.querySelector("[data-modal-backdrop]");
+  const modalSub = document.querySelector("[data-modal-sub]");
+  const modalFields = document.querySelector("[data-modal-fields]");
+  const resultBox = document.querySelector("[data-result-box]");
+  const resultUrlInput = document.querySelector("[data-result-url]");
+  const resultOpenLink = document.querySelector("[data-result-open]");
+  const generateBtn = document.querySelector("[data-generate-link]");
+  let activeTool = null;
+
+  function fieldHTML(field) {
+    if (field.type === "text") {
+      return `
+        <div class="field">
+          <label for="pf-${field.key}">${field.label}</label>
+          <input type="text" id="pf-${field.key}" data-field="${field.key}" placeholder="${field.placeholder || ""}" maxlength="${field.maxlength || 30}" />
+        </div>
+      `;
+    }
+    if (field.type === "chips") {
+      return `
+        <div class="field">
+          <label>${field.label}</label>
+          <div class="chip-group">
+            ${field.options.map((opt, i) => `
+              <label class="chip-option">
+                <input type="radio" name="pf-${field.key}" data-field="${field.key}" value="${opt.value}" ${i === 0 ? "checked" : ""} />
+                <span>${opt.label}</span>
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }
+    return "";
+  }
+
+  function openPersonalize(toolId) {
+    const tool = TOOLS.find(t => t.id === toolId);
+    if (!tool) return;
+    activeTool = tool;
+
+    modalSub.textContent = tool.personalize.subtitle;
+    modalFields.innerHTML = tool.personalize.fields.map(fieldHTML).join("");
+    resultBox.classList.remove("show");
+
+    document.body.classList.add("modal-open");
+    requestAnimationFrame(() => backdrop.classList.add("open"));
+
+    const firstInput = modalFields.querySelector("input[type='text']");
+    if (firstInput) setTimeout(() => firstInput.focus(), 260);
+  }
+
+  function closeModal() {
+    backdrop.classList.remove("open");
+    document.body.classList.remove("modal-open");
+    activeTool = null;
+  }
+
+  gridEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-personalize]");
+    if (btn) openPersonalize(btn.dataset.personalize);
+  });
+
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeModal();
+  });
+
+  document.querySelector("[data-modal-close]").addEventListener("click", closeModal);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && activeTool) closeModal();
+  });
+
+  generateBtn.addEventListener("click", () => {
+    if (!activeTool) return;
+
+    const params = new URLSearchParams();
+    modalFields.querySelectorAll("[data-field]").forEach((el) => {
+      if (el.type === "radio" && !el.checked) return;
+      const value = el.value.trim();
+      if (value) params.set(el.dataset.field, value);
+    });
+
+    const query = params.toString();
+    const finalUrl = query ? `${activeTool.baseUrl}?${query}` : activeTool.baseUrl;
+
+    resultUrlInput.value = finalUrl;
+    resultOpenLink.href = finalUrl;
+    resultBox.classList.add("show");
+  });
+
+  document.querySelector("[data-copy-link]").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-copy-link]") || e.currentTarget;
+    const text = resultUrlInput.value;
+    if (!text) return;
+
+    const done = () => {
+      const original = btn.innerHTML;
+      btn.classList.add("copied");
+      btn.innerHTML = '<i class="ph ph-check"></i>已複製';
+      setTimeout(() => {
+        btn.classList.remove("copied");
+        btn.innerHTML = original;
+      }, 1600);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  });
+
+  function fallbackCopy(text, cb) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    cb();
+  }
+</script>
+
+</body>
+</html>
