@@ -352,6 +352,28 @@
     outline-offset: 1px;
   }
 
+  .field select {
+    width: 100%;
+    border: 1px solid var(--card-line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #FFFFFF;
+  }
+
+  .field select:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .field-hint {
+    margin: 6px 0 0;
+    font-size: 11.5px;
+    color: var(--tertiary-ink);
+  }
+
   .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
 
   .chip-option { position: relative; }
@@ -566,6 +588,46 @@
             ]
           },
           {
+            key: "model", type: "select", label: "預設機型（選填，比分類更精確，直接開到該機型頁）",
+            emptyLabel: "不指定",
+            groups: [
+              { label: "Mac", options: [
+                { value: "macbook-air", label: "MacBook Air" },
+                { value: "macbook-pro", label: "MacBook Pro" },
+                { value: "macbook-neo", label: "MacBook Neo" },
+                { value: "imac", label: "iMac" },
+                { value: "mac-mini", label: "Mac mini" },
+                { value: "mac-studio", label: "Mac Studio" }
+              ]},
+              { label: "iPad", options: [
+                { value: "ipad-pro", label: "iPad Pro" },
+                { value: "ipad-air", label: "iPad Air" },
+                { value: "ipad-mini", label: "iPad mini" },
+                { value: "ipad", label: "iPad" }
+              ]},
+              { label: "iPhone", options: [
+                { value: "iphone-17-pro", label: "iPhone 17 Pro" },
+                { value: "iphone-17", label: "iPhone 17" },
+                { value: "iphone-air", label: "iPhone Air" },
+                { value: "iphone-17e", label: "iPhone 17e" }
+              ]},
+              { label: "Apple Watch", options: [
+                { value: "watch-ultra-3", label: "Apple Watch Ultra 3" },
+                { value: "watch-series-11", label: "Apple Watch Series 11" },
+                { value: "watch-se-3", label: "Apple Watch SE 3" }
+              ]}
+            ]
+          },
+          {
+            key: "hide", type: "chips-multi", label: "隱藏不需要的分類（選填，可多選，若只做特定品類的門市可精簡選單）",
+            options: [
+              { value: "mac", label: "Mac" },
+              { value: "ipad", label: "iPad" },
+              { value: "iphone", label: "iPhone" },
+              { value: "watch", label: "Apple Watch" }
+            ]
+          },
+          {
             key: "theme", type: "chips", label: "顯示主題",
             options: [
               { value: "", label: "跟隨系統" },
@@ -636,6 +698,36 @@
         </div>
       `;
     }
+    if (field.type === "chips-multi") {
+      return `
+        <div class="field">
+          <label>${field.label}</label>
+          <div class="chip-group">
+            ${field.options.map(opt => `
+              <label class="chip-option">
+                <input type="checkbox" data-field="${field.key}" value="${opt.value}" />
+                <span>${opt.label}</span>
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }
+    if (field.type === "select") {
+      return `
+        <div class="field">
+          <label for="pf-${field.key}">${field.label}</label>
+          <select id="pf-${field.key}" data-field="${field.key}">
+            <option value="">${field.emptyLabel || "不指定"}</option>
+            ${field.groups.map(g => `
+              <optgroup label="${g.label}">
+                ${g.options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
+              </optgroup>
+            `).join("")}
+          </select>
+        </div>
+      `;
+    }
     return "";
   }
 
@@ -679,11 +771,22 @@
   generateBtn.addEventListener("click", () => {
     if (!activeTool) return;
 
-    const params = new URLSearchParams();
+    const values = {};
     modalFields.querySelectorAll("[data-field]").forEach((el) => {
+      const key = el.dataset.field;
+      if (el.type === "checkbox") {
+        if (!el.checked) return;
+        values[key] = values[key] ? `${values[key]},${el.value}` : el.value;
+        return;
+      }
       if (el.type === "radio" && !el.checked) return;
       const value = el.value.trim();
-      if (value) params.set(el.dataset.field, value);
+      if (value) values[key] = value;
+    });
+
+    const params = new URLSearchParams();
+    Object.entries(values).forEach(([key, value]) => {
+      if (value) params.set(key, value);
     });
 
     const query = params.toString();
