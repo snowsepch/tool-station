@@ -119,12 +119,48 @@
     gap: 8px;
     font-size: 15px;
     font-weight: 900;
-    margin: 0 0 14px;
+    margin: 0;
   }
 
   .section-title:not(:first-child) { margin-top: 8px; }
 
   .section-title i { font-size: 18px; color: var(--accent); }
+
+  .section-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .section-title-row .section-title { margin: 0; }
+
+  .visibility-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    background: var(--accent-bg);
+    color: var(--accent-deep);
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    min-height: 36px;
+    font-size: 12.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .visibility-trigger i { font-size: 15px; }
+
+  .visibility-trigger:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  @media (hover: hover) {
+    .visibility-trigger:hover { filter: brightness(0.97); }
+  }
 
   .section-note {
     margin: -8px 0 16px;
@@ -237,6 +273,102 @@
   .coming-soon strong { display: block; font-size: 14.5px; color: var(--ink); margin-bottom: 4px; }
 
   .coming-soon span { font-size: 12.5px; }
+
+  /* ---------- Hidden-all empty state ---------- */
+  .hidden-all-state {
+    border: 1.5px dashed var(--card-line);
+    border-radius: 18px;
+    padding: 32px 20px;
+    text-align: center;
+    color: var(--sub-ink);
+    background: #FFFFFF;
+    margin-bottom: 44px;
+  }
+
+  .hidden-all-state i { font-size: 26px; color: var(--tertiary-ink); margin-bottom: 10px; display: block; }
+
+  .hidden-all-state strong { display: block; font-size: 14.5px; color: var(--ink); margin-bottom: 4px; }
+
+  .hidden-all-state span { font-size: 12.5px; }
+
+  .hidden-all-state button {
+    margin-top: 14px;
+    background: var(--accent);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    min-height: 40px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  /* ---------- Visibility checklist (inside modal-like sheet) ---------- */
+  .visibility-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+
+  .visibility-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--card-line);
+    border-radius: 12px;
+    background: #FFFFFF;
+  }
+
+  .visibility-row .v-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--accent-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+
+  .visibility-row .v-icon i { font-size: 17px; color: var(--accent-deep); }
+
+  .visibility-row .v-name { flex: 1; font-size: 13.5px; font-weight: 700; }
+
+  .switch { position: relative; display: inline-block; width: 44px; height: 26px; flex: 0 0 auto; }
+
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+
+  .switch .track {
+    position: absolute;
+    inset: 0;
+    background: var(--card-line);
+    border-radius: 999px;
+    transition: background 0.18s ease;
+  }
+
+  .switch .track::before {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    top: 3px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.18s ease;
+  }
+
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::before { transform: translateX(18px); }
+
+  .switch input:focus-visible + .track { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  .visibility-hint {
+    margin: 12px 0 0;
+    font-size: 11.5px;
+    line-height: 1.6;
+    color: var(--tertiary-ink);
+  }
 
   footer {
     text-align: center;
@@ -520,10 +652,21 @@
 
 <main class="wrap">
 
-  <div class="section-title"><i class="ph ph-cube"></i>現有工具</div>
+  <div class="section-title-row">
+    <div class="section-title"><i class="ph ph-cube"></i>現有工具</div>
+    <button type="button" class="visibility-trigger" data-open-visibility>
+      <i class="ph ph-sliders-horizontal"></i>選擇顯示
+    </button>
+  </div>
   <div class="tool-grid" id="tool-grid"></div>
+  <div class="hidden-all-state" id="hidden-all-state" style="display:none;">
+    <i class="ph ph-eye-slash"></i>
+    <strong>目前所有工具都被隱藏了</strong>
+    <span>可以重新開啟想看的工具</span>
+    <button type="button" data-open-visibility>選擇要顯示的工具</button>
+  </div>
 
-  <div class="section-title"><i class="ph ph-hourglass"></i>即將上架</div>
+  <div class="section-title" style="margin-bottom: 14px;"><i class="ph ph-hourglass"></i>即將上架</div>
   <div class="coming-soon">
     <i class="ph ph-sparkle"></i>
     <strong>更多通用工具準備中</strong>
@@ -567,6 +710,24 @@
       </div>
       <p class="result-hint">提示：手機 Safari 打開後，點分享鈕再選「加入主畫面」，就會變成手機上的專屬捷徑。</p>
     </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" data-visibility-backdrop>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="visibility-title">
+    <div class="modal-head">
+      <div>
+        <h2 id="visibility-title">選擇要顯示的工具</h2>
+        <p>只影響你自己看到的畫面，不會影響其他夥伴</p>
+      </div>
+      <button type="button" class="modal-close" data-visibility-close aria-label="關閉">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
+
+    <div class="visibility-list" data-visibility-list></div>
+
+    <p class="visibility-hint">設定會存在這台裝置的瀏覽器裡，換裝置或清除瀏覽器資料需要重新設定一次。</p>
   </div>
 </div>
 
@@ -656,22 +817,57 @@
   ];
 
   const gridEl = document.getElementById("tool-grid");
+  const hiddenAllState = document.getElementById("hidden-all-state");
 
-  gridEl.innerHTML = TOOLS.map(t => `
-    <div class="tool-card">
-      <div class="tool-icon"><i class="ph ${t.icon}"></i></div>
-      <h3>${t.name}</h3>
-      <p>${t.desc}</p>
-      <div class="tool-actions">
-        <a class="btn btn-primary" href="${t.baseUrl}" target="_blank" rel="noopener">
-          <i class="ph ph-arrow-square-out"></i>開啟工具
-        </a>
-        <button type="button" class="btn btn-ghost" data-personalize="${t.id}">
-          <i class="ph ph-sliders-horizontal"></i>個人化設定
-        </button>
+  const VISIBILITY_KEY = "toolStationHiddenTools";
+
+  function getHiddenIds() {
+    try {
+      const raw = localStorage.getItem(VISIBILITY_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function setHiddenIds(ids) {
+    try {
+      localStorage.setItem(VISIBILITY_KEY, JSON.stringify(ids));
+    } catch (e) {}
+  }
+
+  function renderGrid() {
+    const hidden = getHiddenIds();
+    const visibleTools = TOOLS.filter(t => !hidden.includes(t.id));
+
+    if (visibleTools.length === 0) {
+      gridEl.style.display = "none";
+      hiddenAllState.style.display = "block";
+      return;
+    }
+
+    gridEl.style.display = "grid";
+    hiddenAllState.style.display = "none";
+
+    gridEl.innerHTML = visibleTools.map(t => `
+      <div class="tool-card">
+        <div class="tool-icon"><i class="ph ${t.icon}"></i></div>
+        <h3>${t.name}</h3>
+        <p>${t.desc}</p>
+        <div class="tool-actions">
+          <a class="btn btn-primary" href="${t.baseUrl}" target="_blank" rel="noopener">
+            <i class="ph ph-arrow-square-out"></i>開啟工具
+          </a>
+          <button type="button" class="btn btn-ghost" data-personalize="${t.id}">
+            <i class="ph ph-sliders-horizontal"></i>個人化設定
+          </button>
+        </div>
       </div>
-    </div>
-  `).join("");
+    `).join("");
+  }
+
+  renderGrid();
 
   const backdrop = document.querySelector("[data-modal-backdrop]");
   const modalSub = document.querySelector("[data-modal-sub]");
@@ -774,6 +970,57 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && activeTool) closeModal();
+    if (e.key === "Escape" && visibilityBackdrop.classList.contains("open")) closeVisibility();
+  });
+
+  const visibilityBackdrop = document.querySelector("[data-visibility-backdrop]");
+  const visibilityList = document.querySelector("[data-visibility-list]");
+
+  function renderVisibilityList() {
+    const hidden = getHiddenIds();
+    visibilityList.innerHTML = TOOLS.map(t => `
+      <div class="visibility-row">
+        <div class="v-icon"><i class="ph ${t.icon}"></i></div>
+        <div class="v-name">${t.name}</div>
+        <label class="switch">
+          <input type="checkbox" data-visibility-toggle="${t.id}" ${hidden.includes(t.id) ? "" : "checked"} />
+          <span class="track"></span>
+        </label>
+      </div>
+    `).join("");
+  }
+
+  function openVisibility() {
+    renderVisibilityList();
+    document.body.classList.add("modal-open");
+    requestAnimationFrame(() => visibilityBackdrop.classList.add("open"));
+  }
+
+  function closeVisibility() {
+    visibilityBackdrop.classList.remove("open");
+    document.body.classList.remove("modal-open");
+  }
+
+  document.querySelectorAll("[data-open-visibility]").forEach(btn => {
+    btn.addEventListener("click", openVisibility);
+  });
+
+  document.querySelector("[data-visibility-close]").addEventListener("click", closeVisibility);
+
+  visibilityBackdrop.addEventListener("click", (e) => {
+    if (e.target === visibilityBackdrop) closeVisibility();
+  });
+
+  visibilityList.addEventListener("change", (e) => {
+    const toggle = e.target.closest("[data-visibility-toggle]");
+    if (!toggle) return;
+    const id = toggle.dataset.visibilityToggle;
+    const hidden = getHiddenIds();
+    const next = toggle.checked
+      ? hidden.filter(h => h !== id)
+      : hidden.includes(id) ? hidden : [...hidden, id];
+    setHiddenIds(next);
+    renderGrid();
   });
 
   generateBtn.addEventListener("click", () => {
