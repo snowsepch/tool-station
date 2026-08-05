@@ -4,9 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>夥伴工具站 | Apple Shop</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
 <style>
   @font-face {
@@ -225,6 +222,37 @@
     flex: 1;
   }
 
+  /* 已存個人化設定的標記＋清除入口 */
+  .tool-flag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent-deep);
+    background: var(--accent-bg);
+    border-radius: 8px;
+    padding: 7px 10px;
+  }
+
+  .tool-flag i { font-size: 14px; }
+
+  .tool-flag button {
+    margin-left: auto;
+    background: none;
+    border: none;
+    padding: 4px 2px;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent-deep);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .tool-flag button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
   .tool-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
   .btn {
@@ -395,9 +423,10 @@
     position: fixed;
     inset: 0;
     background: rgba(26, 26, 26, 0.42);
+    visibility: hidden;         /* 關閉時整組移出鍵盤 tab 順序與螢幕閱讀器，只靠 opacity 會留下看不見卻能聚焦的欄位 */
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -409,7 +438,7 @@
     .modal-backdrop { align-items: center; padding: 20px; }
   }
 
-  .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+  .modal-backdrop.open { visibility: visible; opacity: 1; pointer-events: auto; }
 
   body.modal-open { overflow: hidden; }
 
@@ -543,6 +572,31 @@
     outline-offset: 1px;
   }
 
+  /* 被限制條件鎖住的選項（例如已隱藏的分類就不能再當預設分類）
+     刻意不用 opacity 淡出：實測 0.4 只有 1.74:1 對比，選項會像消失而不是像被鎖住。
+     改用實色暖灰 #8A837A（對底色 3.59:1）＋刪除線，讀得到但明顯不可選。 */
+  .chip-option.is-locked span {
+    color: #8A837A;
+    text-decoration: line-through;
+    background: var(--body-bg);
+    border-color: var(--card-line);
+  }
+
+  .chip-option.is-locked input { cursor: not-allowed; }
+
+  /* 欄位層級的說明/限制訊息，由 constraints 觸發 */
+  .field-msg {
+    margin: 7px 0 0;
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--accent-deep);
+    display: none;
+  }
+
+  .field-msg.show { display: flex; gap: 5px; align-items: flex-start; }
+
+  .field-msg i { font-size: 13px; flex: 0 0 auto; margin-top: 1px; }
+
   .generate-btn {
     width: 100%;
     margin-top: 18px;
@@ -635,6 +689,44 @@
     color: var(--accent-deep);
     opacity: 0.85;
   }
+
+  /* ---------- QR code（用完才載入編碼器，載不到就退回複製連結） ---------- */
+  .qr-btn {
+    flex: 0 0 auto;
+    background: #FFFFFF;
+    border: 1px solid var(--accent);
+    color: var(--accent-deep);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 12.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .qr-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+  .qr-panel { display: none; margin-top: 12px; text-align: center; }
+  .qr-panel.show { display: block; }
+
+  .qr-panel canvas {
+    width: 168px;
+    height: 168px;
+    background: #FFFFFF;
+    border-radius: 10px;
+    padding: 8px;
+    border: 1px solid var(--card-line);
+  }
+
+  .qr-panel p {
+    margin: 8px 0 0;
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--accent-deep);
+  }
 </style>
 </head>
 <body>
@@ -679,8 +771,8 @@
   </footer>
 </main>
 
-<div class="modal-backdrop" data-modal-backdrop>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+<div class="modal-backdrop" data-modal-backdrop inert>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" data-modal-panel>
     <div class="modal-head">
       <div>
         <h2 id="modal-title">個人化設定</h2>
@@ -700,21 +792,28 @@
     <div class="result-box" data-result-box>
       <div class="result-label">你的專屬連結</div>
       <div class="result-row">
-        <input type="text" readonly data-result-url />
+        <input type="text" readonly data-result-url aria-label="你的專屬連結" />
         <button type="button" class="copy-link-btn" data-copy-link>
           <i class="ph ph-copy"></i>複製
         </button>
       </div>
       <div class="result-actions">
         <a class="result-open-btn" href="#" target="_blank" rel="noopener" data-result-open>開啟我的版本 →</a>
+        <button type="button" class="qr-btn" data-qr-toggle>
+          <i class="ph ph-qr-code"></i>QR code
+        </button>
       </div>
-      <p class="result-hint">提示：手機 Safari 打開後，點分享鈕再選「加入主畫面」，就會變成手機上的專屬捷徑。</p>
+      <div class="qr-panel" data-qr-panel>
+        <canvas data-qr-canvas width="168" height="168"></canvas>
+        <p data-qr-msg>用手機相機掃這個 QR code，就會直接開啟你的專屬版本。</p>
+      </div>
+      <p class="result-hint">設定已記住，下次回到工具站可以直接開啟，不用重填。手機 Safari 打開後點分享鈕選「加入主畫面」，就會變成手機上的專屬捷徑。</p>
     </div>
   </div>
 </div>
 
-<div class="modal-backdrop" data-visibility-backdrop>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="visibility-title">
+<div class="modal-backdrop" data-visibility-backdrop inert>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="visibility-title" data-modal-panel>
     <div class="modal-head">
       <div>
         <h2 id="visibility-title">選擇要顯示的工具</h2>
@@ -732,7 +831,20 @@
 </div>
 
 <script>
-  // 工具登錄表：日後新增通用工具只需在此加一筆，卡片與個人化表單會自動產生
+  /* ============================================================
+     工具登錄表
+     日後新增通用工具只需在此加一筆，卡片、個人化表單、防呆限制、
+     記住設定、QR code 全都會自動長出來，不用改下面的邏輯。
+
+     必填：id / name / desc / icon / baseUrl
+     選填：personalize（沒有這個欄位的工具，卡片就不會出現個人化按鈕）
+       personalize.subtitle    modal 副標
+       personalize.constraints 宣告式防呆規則（見下方 applyConstraints）
+       personalize.fields[]    欄位定義
+         type: text | chips | chips-multi | select
+         shared: true  → 這個欄位的值會存進「全站共用個人資料」，
+                         之後其他工具有同名 key 的欄位會自動預填
+     ============================================================ */
   const TOOLS = [
     {
       id: "newbie-manual",
@@ -742,9 +854,16 @@
       baseUrl: "https://snowsepch.github.io/newbie-manual/",
       personalize: {
         subtitle: "填上暱稱、門市、常用分類，或自己寫一句話，產生你自己的捷徑連結",
+        constraints: [
+          // 手冊端遇到「4 個分類全被隱藏」會整組忽略，所以這裡就不讓夥伴選到那一步
+          { type: "notAll", field: "hide", message: "至少要留一個分類。全部隱藏的話手冊會忽略這項設定，等於沒設。" },
+          // 隱藏了某分類，就不該還能把該分類的機型設成預設，否則設定會被靜默丟掉
+          { type: "filterByGroup", source: "hide", target: "model", message: "已隱藏的分類，其機型不能設為預設。" },
+          { type: "filterOptions", source: "hide", target: "cat", message: "已隱藏的分類不能當預設分類。" }
+        ],
         fields: [
-          { key: "name", type: "text", label: "暱稱（選填）", placeholder: "例如：小美", maxlength: 12 },
-          { key: "store", type: "text", label: "門市名稱（選填）", placeholder: "例如：OOO店", maxlength: 20 },
+          { key: "name", type: "text", shared: true, label: "暱稱（選填）", placeholder: "例如：小美", maxlength: 12 },
+          { key: "store", type: "text", shared: true, label: "門市名稱（選填）", placeholder: "例如：OOO店", maxlength: 20 },
           { key: "note", type: "text", label: "自訂顯示文字（選填，想寫什麼都可以）", placeholder: "例如：交機前再看一次", maxlength: 40 },
           {
             key: "cat", type: "chips", label: "預設打開分類",
@@ -760,7 +879,7 @@
             key: "model", type: "select", label: "預設機型（選填，比分類更精確，直接開到該機型頁）",
             emptyLabel: "不指定",
             groups: [
-              { label: "Mac", options: [
+              { key: "mac", label: "Mac", options: [
                 { value: "macbook-air", label: "MacBook Air" },
                 { value: "macbook-pro", label: "MacBook Pro" },
                 { value: "macbook-neo", label: "MacBook Neo" },
@@ -768,19 +887,19 @@
                 { value: "mac-mini", label: "Mac mini" },
                 { value: "mac-studio", label: "Mac Studio" }
               ]},
-              { label: "iPad", options: [
+              { key: "ipad", label: "iPad", options: [
                 { value: "ipad-pro", label: "iPad Pro" },
                 { value: "ipad-air", label: "iPad Air" },
                 { value: "ipad-mini", label: "iPad mini" },
                 { value: "ipad", label: "iPad" }
               ]},
-              { label: "iPhone", options: [
+              { key: "iphone", label: "iPhone", options: [
                 { value: "iphone-17-pro", label: "iPhone 17 Pro" },
                 { value: "iphone-17", label: "iPhone 17" },
                 { value: "iphone-air", label: "iPhone Air" },
                 { value: "iphone-17e", label: "iPhone 17e" }
               ]},
-              { label: "Apple Watch", options: [
+              { key: "watch", label: "Apple Watch", options: [
                 { value: "watch-ultra-3", label: "Apple Watch Ultra 3" },
                 { value: "watch-series-11", label: "Apple Watch Series 11" },
                 { value: "watch-se-3", label: "Apple Watch SE 3" }
@@ -797,6 +916,14 @@
             ]
           },
           {
+            key: "view", type: "chips", label: "顯示模式",
+            hint: "精簡模式會藏起規格表與 Demo 情境，只留 3 個記憶特色和銷售話術，適合已經熟機型、現場只想快速對一下話術的夥伴。",
+            options: [
+              { value: "", label: "完整" },
+              { value: "quick", label: "精簡（特色＋話術）" }
+            ]
+          },
+          {
             key: "theme", type: "chips", label: "顯示主題",
             options: [
               { value: "", label: "跟隨系統" },
@@ -808,7 +935,8 @@
             key: "text", type: "chips", label: "文字大小",
             options: [
               { value: "", label: "標準" },
-              { value: "large", label: "大字模式" }
+              { value: "large", label: "大字" },
+              { value: "xlarge", label: "特大" }
             ]
           }
         ]
@@ -816,26 +944,93 @@
     }
   ];
 
-  const gridEl = document.getElementById("tool-grid");
-  const hiddenAllState = document.getElementById("hidden-all-state");
+  /* ---------- 設定檔健檢：工具變多時第一時間抓出登錄表寫錯 ---------- */
+  (function auditTools() {
+    const seenIds = new Set();
+    TOOLS.forEach((t, i) => {
+      if (!t.id || !t.name || !t.baseUrl) {
+        console.warn(`[工具站] 第 ${i + 1} 筆工具缺少 id / name / baseUrl：`, t);
+      }
+      if (seenIds.has(t.id)) console.warn(`[工具站] 工具 id 重複，卡片與設定會互相蓋掉：${t.id}`);
+      seenIds.add(t.id);
+      const fields = (t.personalize && t.personalize.fields) || [];
+      const seenKeys = new Set();
+      fields.forEach(f => {
+        if (!f.key || !f.type) console.warn(`[工具站] ${t.id} 有欄位缺少 key / type：`, f);
+        if (seenKeys.has(f.key)) console.warn(`[工具站] ${t.id} 欄位 key 重複，產生的連結會少參數：${f.key}`);
+        seenKeys.add(f.key);
+      });
+      const keys = new Set(fields.map(f => f.key));
+      ((t.personalize && t.personalize.constraints) || []).forEach(c => {
+        [c.field, c.source, c.target].filter(Boolean).forEach(k => {
+          if (!keys.has(k)) console.warn(`[工具站] ${t.id} 的 constraint 指向不存在的欄位：${k}`);
+        });
+      });
+    });
+  })();
 
-  const VISIBILITY_KEY = "toolStationHiddenTools";
+  /* ---------- 通用小工具 ---------- */
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[c]);
+  }
 
-  function getHiddenIds() {
+  function readJSON(key, fallback) {
     try {
-      const raw = localStorage.getItem(VISIBILITY_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : fallback;
     } catch (e) {
-      return [];
+      return fallback;
     }
   }
 
-  function setHiddenIds(ids) {
-    try {
-      localStorage.setItem(VISIBILITY_KEY, JSON.stringify(ids));
-    } catch (e) {}
+  function writeJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
   }
+
+  const VISIBILITY_KEY = "toolStationHiddenTools";   // 這台裝置隱藏了哪些工具卡片
+  const PREFS_KEY = "toolStationToolPrefs";          // 各工具上次填的個人化設定
+  const PROFILE_KEY = "toolStationProfile";          // 全站共用個人資料（暱稱、門市…）
+
+  function getHiddenIds() {
+    const parsed = readJSON(VISIBILITY_KEY, []);
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  function setHiddenIds(ids) { writeJSON(VISIBILITY_KEY, ids); }
+
+  function getAllPrefs() { return readJSON(PREFS_KEY, {}); }
+  function getToolPrefs(toolId) {
+    const p = getAllPrefs()[toolId];
+    return p && typeof p === "object" ? p : null;
+  }
+  function getProfile() { return readJSON(PROFILE_KEY, {}); }
+
+  /* ---------- 連結組裝：依 fields 順序產生，參數順序才會穩定 ---------- */
+  function buildUrl(tool, values) {
+    const fields = (tool.personalize && tool.personalize.fields) || [];
+    const params = new URLSearchParams();
+    fields.forEach(f => {
+      const v = values[f.key];
+      if (v === undefined || v === null) return;
+      const str = Array.isArray(v) ? v.join(",") : String(v).trim();
+      if (str) params.set(f.key, str);
+    });
+    const query = params.toString();
+    return query ? `${tool.baseUrl}?${query}` : tool.baseUrl;
+  }
+
+  function hasPrefs(prefs) {
+    if (!prefs) return false;
+    return Object.values(prefs).some(v => Array.isArray(v) ? v.length > 0 : String(v || "").trim() !== "");
+  }
+
+  /* ---------- 卡片牆 ---------- */
+  const gridEl = document.getElementById("tool-grid");
+  const hiddenAllState = document.getElementById("hidden-all-state");
 
   function renderGrid() {
     const hidden = getHiddenIds();
@@ -843,6 +1038,7 @@
 
     if (visibleTools.length === 0) {
       gridEl.style.display = "none";
+      gridEl.innerHTML = "";
       hiddenAllState.style.display = "block";
       return;
     }
@@ -850,25 +1046,41 @@
     gridEl.style.display = "grid";
     hiddenAllState.style.display = "none";
 
-    gridEl.innerHTML = visibleTools.map(t => `
+    gridEl.innerHTML = visibleTools.map(t => {
+      const canPersonalize = !!(t.personalize && (t.personalize.fields || []).length);
+      const prefs = canPersonalize ? getToolPrefs(t.id) : null;
+      const personalized = hasPrefs(prefs);
+      const openUrl = personalized ? buildUrl(t, prefs) : t.baseUrl;
+
+      return `
       <div class="tool-card">
-        <div class="tool-icon"><i class="ph ${t.icon}"></i></div>
-        <h3>${t.name}</h3>
-        <p>${t.desc}</p>
+        <div class="tool-icon"><i class="ph ${escapeHtml(t.icon)}"></i></div>
+        <h3>${escapeHtml(t.name)}</h3>
+        <p>${escapeHtml(t.desc)}</p>
+        ${personalized ? `
+          <div class="tool-flag">
+            <i class="ph ph-user-check"></i>已套用你的設定
+            <button type="button" data-clear-prefs="${escapeHtml(t.id)}">清除</button>
+          </div>
+        ` : ""}
         <div class="tool-actions">
-          <a class="btn btn-primary" href="${t.baseUrl}" target="_blank" rel="noopener">
-            <i class="ph ph-arrow-square-out"></i>開啟工具
+          <a class="btn btn-primary" href="${escapeHtml(openUrl)}" target="_blank" rel="noopener">
+            <i class="ph ph-arrow-square-out"></i>${personalized ? "開啟我的版本" : "開啟工具"}
           </a>
-          <button type="button" class="btn btn-ghost" data-personalize="${t.id}">
-            <i class="ph ph-sliders-horizontal"></i>個人化設定
-          </button>
+          ${canPersonalize ? `
+            <button type="button" class="btn btn-ghost" data-personalize="${escapeHtml(t.id)}">
+              <i class="ph ph-sliders-horizontal"></i>${personalized ? "調整設定" : "個人化設定"}
+            </button>
+          ` : ""}
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
   }
 
   renderGrid();
 
+  /* ---------- 個人化 modal ---------- */
   const backdrop = document.querySelector("[data-modal-backdrop]");
   const modalSub = document.querySelector("[data-modal-sub]");
   const modalFields = document.querySelector("[data-modal-fields]");
@@ -876,90 +1088,250 @@
   const resultUrlInput = document.querySelector("[data-result-url]");
   const resultOpenLink = document.querySelector("[data-result-open]");
   const generateBtn = document.querySelector("[data-generate-link]");
+  const qrPanel = document.querySelector("[data-qr-panel]");
+  const qrCanvas = document.querySelector("[data-qr-canvas]");
+  const qrMsg = document.querySelector("[data-qr-msg]");
   let activeTool = null;
 
-  function fieldHTML(field) {
+  // 開啟 modal 前先算出每個欄位要預填什麼：
+  // 該工具上次填的值 > 全站共用個人資料（shared 欄位）> 空值
+  function prefillValue(tool, field) {
+    const prefs = getToolPrefs(tool.id);
+    if (prefs && prefs[field.key] !== undefined) return prefs[field.key];
+    if (field.shared) {
+      const profile = getProfile();
+      if (profile[field.key] !== undefined) return profile[field.key];
+    }
+    return field.type === "chips-multi" ? [] : "";
+  }
+
+  function fieldHTML(field, value) {
+    const hint = field.hint ? `<p class="field-hint">${escapeHtml(field.hint)}</p>` : "";
+    const msg = `<p class="field-msg" data-field-msg="${escapeHtml(field.key)}"><i class="ph ph-info"></i><span></span></p>`;
+
     if (field.type === "text") {
       return `
         <div class="field">
-          <label for="pf-${field.key}">${field.label}</label>
-          <input type="text" id="pf-${field.key}" data-field="${field.key}" placeholder="${field.placeholder || ""}" maxlength="${field.maxlength || 30}" />
+          <label for="pf-${escapeHtml(field.key)}">${escapeHtml(field.label)}</label>
+          <input type="text" id="pf-${escapeHtml(field.key)}" data-field="${escapeHtml(field.key)}"
+                 placeholder="${escapeHtml(field.placeholder || "")}"
+                 maxlength="${Number(field.maxlength) || 30}"
+                 value="${escapeHtml(Array.isArray(value) ? "" : value)}" />
+          ${hint}${msg}
         </div>
       `;
     }
+
     if (field.type === "chips") {
+      const current = Array.isArray(value) ? "" : String(value || "");
+      const matched = field.options.some(o => o.value === current);
       return `
         <div class="field">
-          <label>${field.label}</label>
+          <label>${escapeHtml(field.label)}</label>
           <div class="chip-group">
-            ${field.options.map((opt, i) => `
+            ${field.options.map((opt, i) => {
+              const checked = matched ? opt.value === current : i === 0;
+              return `
               <label class="chip-option">
-                <input type="radio" name="pf-${field.key}" data-field="${field.key}" value="${opt.value}" ${i === 0 ? "checked" : ""} />
-                <span>${opt.label}</span>
+                <input type="radio" name="pf-${escapeHtml(field.key)}" data-field="${escapeHtml(field.key)}"
+                       value="${escapeHtml(opt.value)}" ${checked ? "checked" : ""} />
+                <span>${escapeHtml(opt.label)}</span>
               </label>
-            `).join("")}
+            `;
+            }).join("")}
           </div>
+          ${hint}${msg}
         </div>
       `;
     }
+
     if (field.type === "chips-multi") {
+      const current = Array.isArray(value) ? value : String(value || "").split(",").filter(Boolean);
       return `
         <div class="field">
-          <label>${field.label}</label>
+          <label>${escapeHtml(field.label)}</label>
           <div class="chip-group">
             ${field.options.map(opt => `
               <label class="chip-option">
-                <input type="checkbox" data-field="${field.key}" value="${opt.value}" />
-                <span>${opt.label}</span>
+                <input type="checkbox" data-field="${escapeHtml(field.key)}" value="${escapeHtml(opt.value)}"
+                       ${current.includes(opt.value) ? "checked" : ""} />
+                <span>${escapeHtml(opt.label)}</span>
               </label>
             `).join("")}
           </div>
+          ${hint}${msg}
         </div>
       `;
     }
+
     if (field.type === "select") {
+      const current = Array.isArray(value) ? "" : String(value || "");
       return `
         <div class="field">
-          <label for="pf-${field.key}">${field.label}</label>
-          <select id="pf-${field.key}" data-field="${field.key}">
-            <option value="">${field.emptyLabel || "不指定"}</option>
+          <label for="pf-${escapeHtml(field.key)}">${escapeHtml(field.label)}</label>
+          <select id="pf-${escapeHtml(field.key)}" data-field="${escapeHtml(field.key)}">
+            <option value="" ${current === "" ? "selected" : ""}>${escapeHtml(field.emptyLabel || "不指定")}</option>
             ${field.groups.map(g => `
-              <optgroup label="${g.label}">
-                ${g.options.map(opt => `<option value="${opt.value}">${opt.label}</option>`).join("")}
+              <optgroup label="${escapeHtml(g.label)}" data-group-key="${escapeHtml(g.key || g.label)}">
+                ${g.options.map(opt => `
+                  <option value="${escapeHtml(opt.value)}" ${opt.value === current ? "selected" : ""}>${escapeHtml(opt.label)}</option>
+                `).join("")}
               </optgroup>
             `).join("")}
           </select>
+          ${hint}${msg}
         </div>
       `;
     }
+
+    console.warn(`[工具站] 不認識的欄位型態：${field.type}（欄位 ${field.key}）`);
     return "";
+  }
+
+  function setFieldMsg(key, text) {
+    const el = modalFields.querySelector(`[data-field-msg="${key}"]`);
+    if (!el) return;
+    el.querySelector("span").textContent = text || "";
+    el.classList.toggle("show", !!text);
+  }
+
+  function checkedValues(key) {
+    return [...modalFields.querySelectorAll(`input[type="checkbox"][data-field="${key}"]`)]
+      .filter(b => b.checked && !b.disabled)
+      .map(b => b.value);
+  }
+
+  /* ---------- 宣告式防呆：每次欄位變動都重跑一次 ----------
+     notAll        某個多選欄位不可以全選（留最後一個不給勾，而不是勾完才報錯）
+     filterByGroup 來源欄位勾到的值，會把目標 select 對應 group 整組鎖起來
+     filterOptions 來源欄位勾到的值，會把目標 chips 的同名選項鎖起來
+     ------------------------------------------------------------ */
+  function applyConstraints(tool) {
+    const cons = (tool.personalize && tool.personalize.constraints) || [];
+
+    cons.forEach(c => {
+      if (c.type === "notAll") {
+        const boxes = [...modalFields.querySelectorAll(`input[type="checkbox"][data-field="${c.field}"]`)];
+        if (boxes.length < 2) return;
+        const checkedCount = boxes.filter(b => b.checked).length;
+        const atLimit = checkedCount >= boxes.length - 1;
+        boxes.forEach(b => {
+          const lock = atLimit && !b.checked;
+          b.disabled = lock;
+          const wrap = b.closest(".chip-option");
+          if (wrap) wrap.classList.toggle("is-locked", lock);
+        });
+        setFieldMsg(c.field, atLimit ? (c.message || "不能全部選取。") : "");
+        return;
+      }
+
+      if (c.type === "filterByGroup") {
+        const blocked = new Set(checkedValues(c.source));
+        const sel = modalFields.querySelector(`select[data-field="${c.target}"]`);
+        if (!sel) return;
+        let cleared = false;
+        [...sel.querySelectorAll("optgroup")].forEach(g => {
+          const lock = blocked.has(g.dataset.groupKey);
+          g.disabled = lock;
+          g.style.display = lock ? "none" : "";
+          [...g.querySelectorAll("option")].forEach(o => {
+            o.disabled = lock;
+            o.hidden = lock;
+            if (lock && o.selected) { o.selected = false; cleared = true; }
+          });
+        });
+        if (cleared) sel.value = "";
+        setFieldMsg(c.target, blocked.size && c.message ? c.message : "");
+        return;
+      }
+
+      if (c.type === "filterOptions") {
+        const blocked = new Set(checkedValues(c.source));
+        const radios = [...modalFields.querySelectorAll(`input[type="radio"][data-field="${c.target}"]`)];
+        if (!radios.length) return;
+        let cleared = false;
+        radios.forEach(r => {
+          const lock = r.value !== "" && blocked.has(r.value);
+          r.disabled = lock;
+          const wrap = r.closest(".chip-option");
+          if (wrap) wrap.classList.toggle("is-locked", lock);
+          if (lock && r.checked) { r.checked = false; cleared = true; }
+        });
+        if (cleared || !radios.some(r => r.checked)) {
+          const fallback = radios.find(r => !r.disabled);
+          if (fallback) fallback.checked = true;
+        }
+        setFieldMsg(c.target, blocked.size && c.message ? c.message : "");
+        return;
+      }
+
+      console.warn(`[工具站] 不認識的 constraint 型態：${c.type}`);
+    });
+  }
+
+  function collectValues(tool) {
+    const fields = (tool.personalize && tool.personalize.fields) || [];
+    const values = {};
+    fields.forEach(f => {
+      if (f.type === "chips-multi") {
+        const arr = checkedValues(f.key);
+        if (arr.length) values[f.key] = arr;
+        return;
+      }
+      if (f.type === "chips") {
+        const r = modalFields.querySelector(`input[type="radio"][data-field="${f.key}"]:checked`);
+        if (r && r.value) values[f.key] = r.value;
+        return;
+      }
+      const el = modalFields.querySelector(`[data-field="${f.key}"]`);
+      if (!el) return;
+      const v = String(el.value || "").trim();
+      if (v) values[f.key] = v;
+    });
+    return values;
   }
 
   function openPersonalize(toolId) {
     const tool = TOOLS.find(t => t.id === toolId);
-    if (!tool) return;
+    if (!tool || !tool.personalize) return;
     activeTool = tool;
 
-    modalSub.textContent = tool.personalize.subtitle;
-    modalFields.innerHTML = tool.personalize.fields.map(fieldHTML).join("");
-    resultBox.classList.remove("show");
+    modalSub.textContent = tool.personalize.subtitle || "";
+    modalFields.innerHTML = (tool.personalize.fields || [])
+      .map(f => fieldHTML(f, prefillValue(tool, f)))
+      .join("");
+    applyConstraints(tool);
 
-    document.body.classList.add("modal-open");
-    requestAnimationFrame(() => backdrop.classList.add("open"));
+    resultBox.classList.remove("show");
+    qrPanel.classList.remove("show");
+
+    openBackdrop(backdrop);
 
     const firstInput = modalFields.querySelector("input[type='text']");
     if (firstInput) setTimeout(() => firstInput.focus(), 260);
   }
 
   function closeModal() {
-    backdrop.classList.remove("open");
-    document.body.classList.remove("modal-open");
+    closeBackdrop(backdrop);
     activeTool = null;
   }
 
+  // 欄位一動就重跑防呆，夥伴才不會勾完才發現設定無效
+  modalFields.addEventListener("change", () => {
+    if (activeTool) applyConstraints(activeTool);
+  });
+
   gridEl.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-personalize]");
-    if (btn) openPersonalize(btn.dataset.personalize);
+    const personalizeBtn = e.target.closest("[data-personalize]");
+    if (personalizeBtn) { openPersonalize(personalizeBtn.dataset.personalize); return; }
+
+    const clearBtn = e.target.closest("[data-clear-prefs]");
+    if (clearBtn) {
+      const all = getAllPrefs();
+      delete all[clearBtn.dataset.clearPrefs];
+      writeJSON(PREFS_KEY, all);
+      renderGrid();
+    }
   });
 
   backdrop.addEventListener("click", (e) => {
@@ -968,97 +1340,42 @@
 
   document.querySelector("[data-modal-close]").addEventListener("click", closeModal);
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && activeTool) closeModal();
-    if (e.key === "Escape" && visibilityBackdrop.classList.contains("open")) closeVisibility();
-  });
-
-  const visibilityBackdrop = document.querySelector("[data-visibility-backdrop]");
-  const visibilityList = document.querySelector("[data-visibility-list]");
-
-  function renderVisibilityList() {
-    const hidden = getHiddenIds();
-    visibilityList.innerHTML = TOOLS.map(t => `
-      <div class="visibility-row">
-        <div class="v-icon"><i class="ph ${t.icon}"></i></div>
-        <div class="v-name">${t.name}</div>
-        <label class="switch">
-          <input type="checkbox" data-visibility-toggle="${t.id}" ${hidden.includes(t.id) ? "" : "checked"} />
-          <span class="track"></span>
-        </label>
-      </div>
-    `).join("");
-  }
-
-  function openVisibility() {
-    renderVisibilityList();
-    document.body.classList.add("modal-open");
-    requestAnimationFrame(() => visibilityBackdrop.classList.add("open"));
-  }
-
-  function closeVisibility() {
-    visibilityBackdrop.classList.remove("open");
-    document.body.classList.remove("modal-open");
-  }
-
-  document.querySelectorAll("[data-open-visibility]").forEach(btn => {
-    btn.addEventListener("click", openVisibility);
-  });
-
-  document.querySelector("[data-visibility-close]").addEventListener("click", closeVisibility);
-
-  visibilityBackdrop.addEventListener("click", (e) => {
-    if (e.target === visibilityBackdrop) closeVisibility();
-  });
-
-  visibilityList.addEventListener("change", (e) => {
-    const toggle = e.target.closest("[data-visibility-toggle]");
-    if (!toggle) return;
-    const id = toggle.dataset.visibilityToggle;
-    const hidden = getHiddenIds();
-    const next = toggle.checked
-      ? hidden.filter(h => h !== id)
-      : hidden.includes(id) ? hidden : [...hidden, id];
-    setHiddenIds(next);
-    renderGrid();
-  });
-
   generateBtn.addEventListener("click", () => {
     if (!activeTool) return;
 
-    const values = {};
-    modalFields.querySelectorAll("[data-field]").forEach((el) => {
-      const key = el.dataset.field;
-      if (el.type === "checkbox") {
-        if (!el.checked) return;
-        values[key] = values[key] ? `${values[key]},${el.value}` : el.value;
-        return;
-      }
-      if (el.type === "radio" && !el.checked) return;
-      const value = el.value.trim();
-      if (value) values[key] = value;
-    });
+    const values = collectValues(activeTool);
+    const finalUrl = buildUrl(activeTool, values);
 
-    const params = new URLSearchParams();
-    Object.entries(values).forEach(([key, value]) => {
-      if (value) params.set(key, value);
-    });
+    // 記住這支工具的設定，下次打開 modal 自動帶回、卡片直接開個人化版本
+    const allPrefs = getAllPrefs();
+    if (hasPrefs(values)) allPrefs[activeTool.id] = values;
+    else delete allPrefs[activeTool.id];
+    writeJSON(PREFS_KEY, allPrefs);
 
-    const query = params.toString();
-    const finalUrl = query ? `${activeTool.baseUrl}?${query}` : activeTool.baseUrl;
+    // shared 欄位寫進全站共用個人資料，之後新工具有同名欄位就會自動預填
+    const profile = getProfile();
+    (activeTool.personalize.fields || []).filter(f => f.shared).forEach(f => {
+      if (values[f.key]) profile[f.key] = values[f.key];
+      else delete profile[f.key];
+    });
+    writeJSON(PROFILE_KEY, profile);
 
     resultUrlInput.value = finalUrl;
     resultOpenLink.href = finalUrl;
     resultBox.classList.add("show");
+    qrPanel.classList.remove("show");
+    renderGrid();
   });
 
+  /* ---------- 複製連結 ---------- */
   document.querySelector("[data-copy-link]").addEventListener("click", (e) => {
     const btn = e.target.closest("[data-copy-link]") || e.currentTarget;
+    if (btn.classList.contains("copied")) return;   // 連點兩次會讓還原文字被覆寫成「已複製」而卡住
     const text = resultUrlInput.value;
     if (!text) return;
 
+    const original = btn.innerHTML;
     const done = () => {
-      const original = btn.innerHTML;
       btn.classList.add("copied");
       btn.innerHTML = '<i class="ph ph-check"></i>已複製';
       setTimeout(() => {
@@ -1085,6 +1402,132 @@
     document.body.removeChild(ta);
     cb();
   }
+
+  /* ---------- QR code：點了才載入編碼器，全程在瀏覽器內產生不外傳 ---------- */
+  const QR_SRC = "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js";
+  let qrLoader = null;
+
+  function loadQR() {
+    if (window.QRCode) return Promise.resolve();
+    if (qrLoader) return qrLoader;
+    qrLoader = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = QR_SRC;
+      s.onload = () => window.QRCode ? resolve() : reject(new Error("QRCode 未掛載"));
+      s.onerror = () => reject(new Error("載入失敗"));
+      document.head.appendChild(s);
+    }).catch(err => { qrLoader = null; throw err; });
+    return qrLoader;
+  }
+
+  document.querySelector("[data-qr-toggle]").addEventListener("click", () => {
+    const url = resultUrlInput.value;
+    if (!url) return;
+
+    if (qrPanel.classList.contains("show")) { qrPanel.classList.remove("show"); return; }
+
+    qrPanel.classList.add("show");
+    qrMsg.textContent = "產生中…";
+
+    loadQR()
+      .then(() => window.QRCode.toCanvas(qrCanvas, url, {
+        width: 168,
+        margin: 1,
+        color: { dark: "#221D18", light: "#FFFFFF" }
+      }))
+      .then(() => { qrMsg.textContent = "用手機相機掃這個 QR code，就會直接開啟你的專屬版本。"; })
+      .catch(() => { qrMsg.textContent = "QR code 產生失敗（可能是網路擋掉了）。請改用上面的「複製」把連結傳到手機。"; });
+  });
+
+  /* ---------- 選擇顯示哪些工具 ---------- */
+  const visibilityBackdrop = document.querySelector("[data-visibility-backdrop]");
+  const visibilityList = document.querySelector("[data-visibility-list]");
+
+  function renderVisibilityList() {
+    const hidden = getHiddenIds();
+    visibilityList.innerHTML = TOOLS.map(t => `
+      <div class="visibility-row">
+        <div class="v-icon"><i class="ph ${escapeHtml(t.icon)}"></i></div>
+        <div class="v-name">${escapeHtml(t.name)}</div>
+        <label class="switch">
+          <input type="checkbox" data-visibility-toggle="${escapeHtml(t.id)}" ${hidden.includes(t.id) ? "" : "checked"}
+                 aria-label="顯示${escapeHtml(t.name)}" />
+          <span class="track"></span>
+        </label>
+      </div>
+    `).join("");
+  }
+
+  function openVisibility() {
+    renderVisibilityList();
+    openBackdrop(visibilityBackdrop);
+  }
+
+  function closeVisibility() { closeBackdrop(visibilityBackdrop); }
+
+  document.querySelectorAll("[data-open-visibility]").forEach(btn => {
+    btn.addEventListener("click", openVisibility);
+  });
+
+  document.querySelector("[data-visibility-close]").addEventListener("click", closeVisibility);
+
+  visibilityBackdrop.addEventListener("click", (e) => {
+    if (e.target === visibilityBackdrop) closeVisibility();
+  });
+
+  visibilityList.addEventListener("change", (e) => {
+    const toggle = e.target.closest("[data-visibility-toggle]");
+    if (!toggle) return;
+    const id = toggle.dataset.visibilityToggle;
+    const hidden = getHiddenIds();
+    const next = toggle.checked
+      ? hidden.filter(h => h !== id)
+      : hidden.includes(id) ? hidden : [...hidden, id];
+    setHiddenIds(next);
+    renderGrid();
+  });
+
+  /* ---------- modal 開關與焦點管理（兩個 modal 共用） ---------- */
+  let lastFocused = null;
+
+  function openBackdrop(bd) {
+    lastFocused = document.activeElement;
+    bd.removeAttribute("inert");
+    document.body.classList.add("modal-open");
+    requestAnimationFrame(() => bd.classList.add("open"));
+  }
+
+  function closeBackdrop(bd) {
+    bd.classList.remove("open");
+    bd.setAttribute("inert", "");
+    document.body.classList.remove("modal-open");
+    if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
+    lastFocused = null;
+  }
+
+  function focusables(root) {
+    return [...root.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+  }
+
+  document.addEventListener("keydown", (e) => {
+    const openBd = [backdrop, visibilityBackdrop].find(bd => bd.classList.contains("open"));
+    if (!openBd) return;
+
+    if (e.key === "Escape") {
+      if (openBd === backdrop) closeModal(); else closeVisibility();
+      return;
+    }
+
+    // 焦點鎖在 modal 內，不會 tab 到後面的頁面
+    if (e.key === "Tab") {
+      const items = focusables(openBd.querySelector("[data-modal-panel]"));
+      if (!items.length) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
 </script>
 
 </body>
