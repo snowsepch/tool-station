@@ -690,7 +690,7 @@
     opacity: 0.85;
   }
 
-  /* ---------- QR code（用完才載入編碼器，載不到就退回複製連結） ---------- */
+  /* ---------- QR code（編碼器內建，不連外，離線可用） ---------- */
   .qr-btn {
     flex: 0 0 auto;
     background: #FFFFFF;
@@ -713,13 +713,15 @@
   .qr-panel.show { display: block; }
 
   .qr-panel canvas {
-    width: 168px;
-    height: 168px;
+    max-width: 100%;
+    height: auto;
     background: #FFFFFF;
     border-radius: 10px;
-    padding: 8px;
     border: 1px solid var(--card-line);
+    image-rendering: pixelated;   /* 縮放時保持模組邊緣銳利，模糊掉會掃不到 */
   }
+
+  .qr-panel canvas[hidden] { display: none; }
 
   .qr-panel p {
     margin: 8px 0 0;
@@ -804,8 +806,8 @@
         </button>
       </div>
       <div class="qr-panel" data-qr-panel>
-        <canvas data-qr-canvas width="168" height="168"></canvas>
-        <p data-qr-msg>用手機相機掃這個 QR code，就會直接開啟你的專屬版本。</p>
+        <canvas data-qr-canvas></canvas>
+        <p data-qr-msg></p>
       </div>
       <p class="result-hint">設定已記住，下次回到工具站可以直接開啟，不用重填。手機 Safari 打開後點分享鈕選「加入主畫面」，就會變成手機上的專屬捷徑。</p>
     </div>
@@ -1403,40 +1405,338 @@
     cb();
   }
 
-  /* ---------- QR code：點了才載入編碼器，全程在瀏覽器內產生不外傳 ---------- */
-  const QR_SRC = "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js";
-  let qrLoader = null;
+  /* ============================================================
+     內建 QR code 編碼器：Byte mode + EC level M，支援版本 1..20（上限 666 bytes）
+     不依賴任何外部套件或 CDN。門市網路擋掉 CDN 時仍然要能出圖，
+     而且這站其他工具都是單檔離線可用，QR 沒理由例外。
+     ============================================================ */
+  const QR = (function () {
+    /* ---- GF(256)，本原多項式 0x11D ---- */
+    const EXP = new Uint8Array(512), LOG = new Uint8Array(256);
+    (function () {
+      let x = 1;
+      for (let i = 0; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 0x100) x ^= 0x11D; }
+      for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+    })();
+    const mul = (a, b) => (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]];
 
-  function loadQR() {
-    if (window.QRCode) return Promise.resolve();
-    if (qrLoader) return qrLoader;
-    qrLoader = new Promise((resolve, reject) => {
-      const s = document.createElement("script");
-      s.src = QR_SRC;
-      s.onload = () => window.QRCode ? resolve() : reject(new Error("QRCode 未掛載"));
-      s.onerror = () => reject(new Error("載入失敗"));
-      document.head.appendChild(s);
-    }).catch(err => { qrLoader = null; throw err; });
-    return qrLoader;
-  }
+    /* ---- 版本表 ----
+       TOTAL：該版本總碼字數（資料+EC）
+       ECM  ：EC level M 的 [每塊EC碼字, 第一組塊數, 第一組每塊資料碼字, 第二組塊數, 第二組每塊資料碼字]
+       兩張表必須互相吻合（b1*(d1+ec) + b2*(d2+ec) === TOTAL[v]），測試會逐版驗算 */
+    const TOTAL = [0, 26, 44, 70, 100, 134, 172, 196, 242, 292, 346, 404, 466, 532, 581, 655,
+      733, 815, 901, 991, 1085];
+    const ECM = [null,
+      [10, 1, 16, 0, 0], [16, 1, 28, 0, 0], [26, 1, 44, 0, 0], [18, 2, 32, 0, 0], [24, 2, 43, 0, 0],
+      [16, 4, 27, 0, 0], [18, 4, 31, 0, 0], [22, 2, 38, 2, 39], [22, 3, 36, 2, 37], [26, 4, 43, 1, 44],
+      [30, 1, 50, 4, 51], [22, 6, 36, 2, 37], [22, 8, 37, 1, 38], [24, 4, 40, 5, 41], [24, 5, 41, 5, 42],
+      [28, 7, 45, 3, 46], [28, 10, 46, 1, 47], [26, 9, 43, 4, 44], [26, 3, 44, 11, 45], [26, 3, 41, 13, 42]
+    ];
+    const ALIGN = [null, [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42],
+      [6, 26, 46], [6, 28, 50], [6, 30, 54], [6, 32, 58], [6, 34, 62], [6, 26, 46, 66], [6, 26, 48, 70],
+      [6, 26, 50, 74], [6, 30, 54, 78], [6, 30, 56, 82], [6, 30, 58, 86], [6, 34, 62, 90]];
+    const MAX_VERSION = 20;
 
+    function genPoly(n) {
+      let g = [1];
+      for (let i = 0; i < n; i++) {
+        const next = new Array(g.length + 1).fill(0);
+        for (let j = 0; j < g.length; j++) {
+          next[j] ^= g[j];                     // × x
+          next[j + 1] ^= mul(g[j], EXP[i]);    // × α^i
+        }
+        g = next;
+      }
+      return g;
+    }
+
+    function rsEncode(data, ecCount) {
+      const gen = genPoly(ecCount);
+      const buf = new Uint8Array(data.length + ecCount);
+      buf.set(data);
+      for (let i = 0; i < data.length; i++) {
+        const factor = buf[i];
+        if (!factor) continue;
+        for (let j = 1; j < gen.length; j++) buf[i + j] ^= mul(gen[j], factor);
+      }
+      return Array.from(buf.slice(data.length));
+    }
+
+    function dataCodewordCount(version) {
+      const [ec, b1, d1, b2, d2] = ECM[version];
+      return b1 * d1 + b2 * d2;
+    }
+
+    function pickVersion(byteLen) {
+      for (let v = 1; v <= MAX_VERSION; v++) {
+        const countBits = v <= 9 ? 8 : 16;
+        if (4 + countBits + byteLen * 8 <= dataCodewordCount(v) * 8) return v;
+      }
+      return null;   // 連結太長，放不進 QR
+    }
+
+    function makeCodewords(bytes, version) {
+      const [ec, b1, d1, b2, d2] = ECM[version];
+      const capacityBits = dataCodewordCount(version) * 8;
+      const countBits = version <= 9 ? 8 : 16;
+
+      const bits = [];
+      const push = (val, len) => { for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1); };
+      push(0b0100, 4);              // Byte mode
+      push(bytes.length, countBits);
+      bytes.forEach(b => push(b, 8));
+      push(0, Math.min(4, capacityBits - bits.length));   // 終止符
+      while (bits.length % 8) bits.push(0);
+      let pad = 0;
+      while (bits.length < capacityBits) push(pad++ % 2 ? 0x11 : 0xEC, 8);
+
+      const words = [];
+      for (let i = 0; i < bits.length; i += 8) {
+        let v = 0;
+        for (let j = 0; j < 8; j++) v = (v << 1) | bits[i + j];
+        words.push(v);
+      }
+
+      const blocks = [];
+      let p = 0;
+      for (let i = 0; i < b1; i++) { const d = words.slice(p, p + d1); p += d1; blocks.push({ d, e: rsEncode(d, ec) }); }
+      for (let i = 0; i < b2; i++) { const d = words.slice(p, p + d2); p += d2; blocks.push({ d, e: rsEncode(d, ec) }); }
+
+      const out = [];
+      const maxD = Math.max(d1, d2);
+      for (let i = 0; i < maxD; i++) blocks.forEach(b => { if (i < b.d.length) out.push(b.d[i]); });
+      for (let i = 0; i < ec; i++) blocks.forEach(b => out.push(b.e[i]));
+      return { out, blocks };
+    }
+
+    /* ---- 格式/版本資訊都用 BCH 現算，不查表 ---- */
+    function formatInfo(ecBits, mask) {
+      const data = (ecBits << 3) | mask;
+      let rem = data << 10;
+      for (let i = 14; i >= 10; i--) if ((rem >> i) & 1) rem ^= 0x537 << (i - 10);
+      return ((data << 10) | rem) ^ 0x5412;
+    }
+
+    function versionInfo(version) {
+      let rem = version << 12;
+      for (let i = 17; i >= 12; i--) if ((rem >> i) & 1) rem ^= 0x1F25 << (i - 12);
+      return (version << 12) | rem;
+    }
+
+    const MASKS = [
+      (i, j) => (i + j) % 2 === 0,
+      (i, j) => i % 2 === 0,
+      (i, j) => j % 3 === 0,
+      (i, j) => (i + j) % 3 === 0,
+      (i, j) => (Math.floor(i / 2) + Math.floor(j / 3)) % 2 === 0,
+      (i, j) => (i * j) % 2 + (i * j) % 3 === 0,
+      (i, j) => ((i * j) % 2 + (i * j) % 3) % 2 === 0,
+      (i, j) => ((i + j) % 2 + (i * j) % 3) % 2 === 0
+    ];
+
+    // 只鋪功能圖樣，回傳 { m, fn }；fn=1 代表該格是功能圖樣，資料不可覆蓋
+    function functionPatterns(version) {
+      const size = version * 4 + 17;
+      const m = Array.from({ length: size }, () => new Int8Array(size).fill(-1));
+      const fn = Array.from({ length: size }, () => new Uint8Array(size));
+      const setF = (r, c, v) => { if (r >= 0 && c >= 0 && r < size && c < size) { m[r][c] = v; fn[r][c] = 1; } };
+
+      // 三個定位圖樣 + 分隔白邊
+      [[0, 0], [0, size - 7], [size - 7, 0]].forEach(([r0, c0]) => {
+        for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) {
+          const inner = r >= 0 && r <= 6 && c >= 0 && c <= 6;
+          if (!inner) { setF(r0 + r, c0 + c, 0); continue; }
+          const ring = Math.max(Math.abs(r - 3), Math.abs(c - 3));
+          setF(r0 + r, c0 + c, ring === 2 ? 0 : 1);
+        }
+      });
+
+      // 校準圖樣（避開三個定位圖樣的位置）
+      const centers = ALIGN[version];
+      centers.forEach(r => centers.forEach(c => {
+        if ((r === 6 && c === 6) || (r === 6 && c === size - 7) || (r === size - 7 && c === 6)) return;
+        for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+          setF(r + dr, c + dc, Math.max(Math.abs(dr), Math.abs(dc)) === 1 ? 0 : 1);
+        }
+      }));
+
+      // 時序圖樣
+      for (let i = 8; i < size - 8; i++) { setF(6, i, i % 2 === 0 ? 1 : 0); setF(i, 6, i % 2 === 0 ? 1 : 0); }
+
+      // 固定深色模組（在第二份格式資訊的垂直段正上方，兩者不重疊）
+      setF(size - 8, 8, 1);
+
+      // 先佔位保留格式資訊區（值稍後才寫入）
+      // 第一份繞左上定位圖樣：0~5 走第 8 欄由上往下，9~14 走第 8 列由右往左
+      // 第二份：0~7 走第 8 列最右側，8~14 走第 8 欄最下方
+      for (let i = 0; i < 15; i++) {
+        if (i <= 5) setF(i, 8, 0);
+        else if (i === 6) setF(7, 8, 0);
+        else if (i === 7) setF(8, 8, 0);
+        else if (i === 8) setF(8, 7, 0);
+        else setF(8, 14 - i, 0);
+
+        if (i < 8) setF(8, size - 1 - i, 0);
+        else setF(size - 15 + i, 8, 0);
+      }
+
+      // 版本資訊（v7 起）
+      if (version >= 7) {
+        for (let i = 0; i < 18; i++) {
+          setF(size - 11 + (i % 3), Math.floor(i / 3), 0);
+          setF(Math.floor(i / 3), size - 11 + (i % 3), 0);
+        }
+      }
+      return { m, fn, size };
+    }
+
+    function placeData(m, fn, size, codewords, mask) {
+      const bits = [];
+      codewords.forEach(b => { for (let i = 7; i >= 0; i--) bits.push((b >> i) & 1); });
+      let idx = 0, up = true;
+      for (let right = size - 1; right > 0; right -= 2) {
+        if (right === 6) right = 5;   // 整行都是時序圖樣，配對要往左位移
+        for (let step = 0; step < size; step++) {
+          const r = up ? size - 1 - step : step;
+          for (const c of [right, right - 1]) {
+            if (fn[r][c]) continue;
+            let v = idx < bits.length ? bits[idx++] : 0;   // 剩餘位元補 0，同樣要被遮罩
+            if (MASKS[mask](r, c)) v ^= 1;
+            m[r][c] = v;
+          }
+        }
+        up = !up;
+      }
+    }
+
+    function writeFormat(m, size, ecBits, mask) {
+      const f = formatInfo(ecBits, mask);
+      for (let i = 0; i < 15; i++) {
+        const bit = (f >> i) & 1;
+        if (i <= 5) m[i][8] = bit;
+        else if (i === 6) m[7][8] = bit;
+        else if (i === 7) m[8][8] = bit;
+        else if (i === 8) m[8][7] = bit;
+        else m[8][14 - i] = bit;
+
+        if (i < 8) m[8][size - 1 - i] = bit;
+        else m[size - 15 + i][8] = bit;
+      }
+      m[size - 8][8] = 1;   // 固定深色模組，確保不被格式資訊蓋掉
+    }
+
+    function writeVersion(m, size, version) {
+      if (version < 7) return;
+      const v = versionInfo(version);
+      for (let i = 0; i < 18; i++) {
+        const bit = (v >> i) & 1;
+        m[size - 11 + (i % 3)][Math.floor(i / 3)] = bit;
+        m[Math.floor(i / 3)][size - 11 + (i % 3)] = bit;
+      }
+    }
+
+    /* ---- 遮罩懲罰分數（規則 1~4，取最低分那個遮罩） ---- */
+    function penalty(m, size) {
+      let score = 0;
+
+      const runScore = (get) => {
+        let s = 0;
+        for (let a = 0; a < size; a++) {
+          let run = 1;
+          for (let b = 1; b < size; b++) {
+            if (get(a, b) === get(a, b - 1)) run++;
+            else { if (run >= 5) s += run - 2; run = 1; }
+          }
+          if (run >= 5) s += run - 2;
+        }
+        return s;
+      };
+      score += runScore((r, c) => m[r][c]);          // 規則1：橫向
+      score += runScore((c, r) => m[r][c]);          // 規則1：縱向
+
+      for (let r = 0; r < size - 1; r++) for (let c = 0; c < size - 1; c++) {   // 規則2
+        const v = m[r][c];
+        if (v === m[r][c + 1] && v === m[r + 1][c] && v === m[r + 1][c + 1]) score += 3;
+      }
+
+      const P1 = [1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0];   // 規則3
+      const P2 = [0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1];
+      const hit = (get, a, b, pat) => { for (let k = 0; k < 11; k++) if (get(a, b + k) !== pat[k]) return false; return true; };
+      for (let a = 0; a < size; a++) for (let b = 0; b + 11 <= size; b++) {
+        const row = (x, y) => m[x][y], col = (x, y) => m[y][x];
+        if (hit(row, a, b, P1) || hit(row, a, b, P2)) score += 40;
+        if (hit(col, a, b, P1) || hit(col, a, b, P2)) score += 40;
+      }
+
+      let dark = 0;                                    // 規則4
+      for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (m[r][c]) dark++;
+      score += Math.floor(Math.abs(dark * 100 / (size * size) - 50) / 5) * 10;
+
+      return score;
+    }
+
+    // 回傳 { size, modules(二維 0/1), version, mask } 或 null（放不下）
+    function encode(text) {
+      const bytes = Array.from(new TextEncoder().encode(text));
+      const version = pickVersion(bytes.length);
+      if (!version) return null;
+
+      const { out } = makeCodewords(bytes, version);
+      const EC_M = 0b00;
+      let best = null;
+      for (let mask = 0; mask < 8; mask++) {
+        const { m, fn, size } = functionPatterns(version);
+        placeData(m, fn, size, out, mask);
+        writeFormat(m, size, EC_M, mask);
+        writeVersion(m, size, version);
+        const s = penalty(m, size);
+        if (!best || s < best.score) best = { score: s, m, size, mask };
+      }
+      return { size: best.size, modules: best.m, version, mask: best.mask };
+    }
+
+    return { encode };
+  })();
+
+  /* ---------- QR code 面板 ---------- */
   document.querySelector("[data-qr-toggle]").addEventListener("click", () => {
     const url = resultUrlInput.value;
     if (!url) return;
 
     if (qrPanel.classList.contains("show")) { qrPanel.classList.remove("show"); return; }
-
     qrPanel.classList.add("show");
-    qrMsg.textContent = "產生中…";
 
-    loadQR()
-      .then(() => window.QRCode.toCanvas(qrCanvas, url, {
-        width: 168,
-        margin: 1,
-        color: { dark: "#221D18", light: "#FFFFFF" }
-      }))
-      .then(() => { qrMsg.textContent = "用手機相機掃這個 QR code，就會直接開啟你的專屬版本。"; })
-      .catch(() => { qrMsg.textContent = "QR code 產生失敗（可能是網路擋掉了）。請改用上面的「複製」把連結傳到手機。"; });
+    const res = QR.encode(url);
+    if (!res) {
+      qrCanvas.hidden = true;
+      qrMsg.textContent = "這個連結太長，QR code 放不下。請改用上面的「複製」把連結傳到手機，或減少幾個個人化欄位。";
+      return;
+    }
+
+    // 每個模組至少 3px，加 4 模組靜空區，否則手機掃不到
+    const quiet = 4;
+    const scale = Math.max(3, Math.floor(260 / (res.size + quiet * 2)));
+    const px = (res.size + quiet * 2) * scale;
+
+    const ctx = qrCanvas.getContext("2d");
+    if (!ctx) {   // 極少數環境拿不到 canvas，給提示而不是整段拋錯
+      qrCanvas.hidden = true;
+      qrMsg.textContent = "這台裝置畫不出 QR code。請改用上面的「複製」把連結傳到手機。";
+      return;
+    }
+
+    qrCanvas.hidden = false;
+    qrCanvas.width = px;
+    qrCanvas.height = px;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, px, px);
+    ctx.fillStyle = "#221D18";
+    for (let r = 0; r < res.size; r++) {
+      for (let c = 0; c < res.size; c++) {
+        if (res.modules[r][c]) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);
+      }
+    }
+    qrMsg.textContent = "用手機相機掃這個 QR code，就會直接開啟你的專屬版本。";
   });
 
   /* ---------- 選擇顯示哪些工具 ---------- */
