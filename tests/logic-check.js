@@ -279,7 +279,11 @@ function renderQR(setup) {
   w.eval(fs.readFileSync(STATION, "utf8").match(/<script>([\s\S]*)<\/script>/)[1]);
   setup(d, w);
   const canvas = d.querySelector("[data-qr-canvas]");
-  const dark = rects.filter(r => r.c === "#221D18");
+  // 深色模組用的顏色從原始碼讀，不寫死，換配色時這支測試才不會跟著壞
+  const qrDark = (fs.readFileSync(STATION, "utf8")
+    .match(/ctx\.fillStyle\s*=\s*"(#[0-9A-Fa-f]{6})";\s*\n\s*for \(let r = 0/) || [])[1];
+  if (!qrDark) throw new Error("找不到 QR 深色模組的 fillStyle，測試需要更新");
+  const dark = rects.filter(r => r.c === qrDark);
   let matrix = null;
   if (dark.length) {
     const scale = dark[0].w, quiet = 4;

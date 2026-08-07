@@ -15,22 +15,25 @@
   }
 
   :root {
-    --header-bg: #F7F4ED;
-    --body-bg: #FBFAF6;
-    --ink: #221D18;
-    --sub-ink: #6E6862;
-    --tertiary-ink: #9C958C;
-    /* 第三階文字：比 sub-ink 再淡一階，但仍過 WCAG AA（對白底 4.96、對頁面底 4.75）。
-       --tertiary-ink 只有 2.96，僅供裝飾性圖示與純點綴文字，真正要讀的字用這個。 */
-    --muted-ink: #766F65;
-    --line: #EAE4D6;
-    --card-line: #EFEBE1;
-    --shadow-soft: rgba(64, 54, 38, 0.06);
-    --ring: #1D4ED8;
-    --accent: #8B233D;         /* 酒紅莓紅，第六輪換掉整個綠色家族(前三輪同色系深淺調整肉眼差異太小)，改用完全不同色相，WCAG對比7.95/8.73驗算通過 */
-    --accent-bg: #F6E5E9;      /* 淡玫瑰粉底，圖示徽章用 */
-    --accent-deep: #4C101F;    /* 深酒紅，承載文字/hover邊框 */
-    --accent-soft: #F9F1F3;    /* 極淡玫瑰洗色，即將上架卡等大面積淡底用 */
+    /* 冷調紙白家族。2026-08-07 從暖米白＋酒紅整組換過來，
+       目的是「清新有質感」，所以連底色都離開暖色調，不只換 accent。 */
+    --header-bg: #F1F4F8;      /* 冷紙白，比 body 深一階，header 用 */
+    --body-bg: #F8F9FB;        /* 頁面底，帶一點藍的紙白，不是純灰 */
+    --ink: #1E242B;            /* 冷墨近黑，不用純黑才有深度 */
+    --sub-ink: #5C6570;        /* 次要文字，對卡片白底 5.91 */
+    --tertiary-ink: #9AA3AE;   /* 僅供裝飾性圖示，對比只有 2.7，要讀的字不要用 */
+    /* 第三階文字：比 sub-ink 再淡一階，但仍過 WCAG AA（對白底 4.75、對頁面底 4.60）。
+       --tertiary-ink 過不了，真正要讀的字用這個。 */
+    --muted-ink: #6B747E;
+    --line: #E2E7EE;           /* 分隔線 */
+    --card-line: #E6EAF0;      /* 卡片邊框，比 line 再淡一階 */
+    --shadow-soft: rgba(30, 40, 54, 0.06);   /* 陰影帶頁面底的冷色調，不是純黑 */
+    --ring: #1D4ED8;           /* 鍵盤焦點環，跟 accent 刻意不同色才分得出來 */
+    --accent: #1F5F8B;         /* 礦藍。WCAG 對 header 6.20、白字在其上 6.84 */
+    --accent-bg: #E2EDF5;      /* 淡天藍底，圖示徽章與 ghost 按鈕用 */
+    --accent-deep: #123A56;    /* 深礦藍，承載文字/hover 邊框，對淡底 10.01 */
+    --accent-soft: #F1F7FB;    /* 極淡藍洗色，即將上架卡等大面積淡底用 */
+    --accent-mid: #B5D6EA;     /* 徽章漸層的第二站，比 accent-bg 深一階 */
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -83,7 +86,7 @@
     width: 22px;
     height: 22px;
     border-radius: 7px;
-    background: linear-gradient(135deg, var(--accent-bg) 0%, #EDC0CB 100%);
+    background: linear-gradient(135deg, var(--accent-bg) 0%, var(--accent-mid) 100%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -258,7 +261,7 @@
   @media (hover: hover) {
     .tool-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 12px 26px -10px rgba(76, 16, 31, 0.22);
+      box-shadow: 0 12px 26px -10px rgba(18, 58, 86, 0.22);
       border-color: var(--accent);
     }
   }
@@ -267,7 +270,7 @@
     width: 46px;
     height: 46px;
     border-radius: 13px;
-    background: linear-gradient(135deg, var(--accent-bg) 0%, #EDC0CB 100%);
+    background: linear-gradient(135deg, var(--accent-bg) 0%, var(--accent-mid) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -374,7 +377,9 @@
 
   .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-  .btn-primary { background: var(--ink); color: #FFFFFF; }
+  /* 主要動作用 accent 而不是近黑：冷色淺底配大塊近黑會顯得沉重、
+     跟藍色家族脫節，換成 accent 整張卡才是同一套語言。白字對比 6.84。 */
+  .btn-primary { background: var(--accent); color: #FFFFFF; }
   .btn-ghost { background: var(--accent-bg); color: var(--accent-deep); }
 
   @media (hover: hover) {
@@ -520,7 +525,7 @@
   .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(26, 26, 26, 0.42);
+    background: rgba(20, 28, 38, 0.44);
     visibility: hidden;         /* 關閉時整組移出鍵盤 tab 順序與螢幕閱讀器，只靠 opacity 會留下看不見卻能聚焦的欄位 */
     opacity: 0;
     pointer-events: none;
@@ -546,7 +551,7 @@
     background: var(--body-bg);
     border-radius: 20px 20px 0 0;
     padding: 20px 20px max(20px, env(safe-area-inset-bottom));
-    box-shadow: 0 -10px 34px rgba(26, 26, 26, 0.16);
+    box-shadow: 0 -10px 34px rgba(20, 28, 38, 0.16);
     transform: translateY(100%);
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     max-height: 86vh;
@@ -581,7 +586,7 @@
     height: 32px;
     border-radius: 50%;
     border: none;
-    background: #F1EEE5;
+    background: #E6EBF0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -672,9 +677,9 @@
 
   /* 被限制條件鎖住的選項（例如已隱藏的分類就不能再當預設分類）
      刻意不用 opacity 淡出：實測 0.4 只有 1.74:1 對比，選項會像消失而不是像被鎖住。
-     改用實色暖灰 #8A837A（對底色 3.59:1）＋刪除線，讀得到但明顯不可選。 */
+     改用實色冷灰 #78818C（對底色 3.75:1）＋刪除線，讀得到但明顯不可選。 */
   .chip-option.is-locked span {
-    color: #8A837A;
+    color: #78818C;
     text-decoration: line-through;
     background: var(--body-bg);
     border-color: var(--card-line);
@@ -749,7 +754,7 @@
 
   .copy-link-btn {
     flex: 0 0 auto;
-    background: var(--ink);
+    background: var(--accent-deep);
     color: #FFFFFF;
     border: none;
     border-radius: 8px;
@@ -2182,7 +2187,7 @@
     qrCanvas.height = px;
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, px, px);
-    ctx.fillStyle = "#221D18";
+    ctx.fillStyle = "#1E242B";
     for (let r = 0; r < res.size; r++) {
       for (let c = 0; c < res.size; c++) {
         if (res.modules[r][c]) ctx.fillRect((c + quiet) * scale, (r + quiet) * scale, scale, scale);

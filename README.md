@@ -6,7 +6,7 @@ Apple Shop 通用工具的集散地。不綁定任何門市或通路，所有夥
 - 本機正本：`iCloud:夥伴工具站/index.html`（單檔 HTML，無 build step）
 - Repo：https://github.com/snowsepch/tool-station（public）
 - 字型：`fonts/jf-openhuninn-2.1.woff2`（自架，不依賴本機字型）
-- 主色：酒紅莓紅 `#8B233D`，僅淺色模式（不做深色模式，已確認）
+- 主色：礦藍 `#1F5F8B` + 冷調紙白底 `#F8F9FB`，僅淺色模式（不做深色模式，已確認）
 
 跟 store-hub（9 門市選擇）、youchang-hub（右昌單店）是第三種平行的入口概念。
 門市專屬工具（需帶店名／地址）仍歸那兩個 hub 管，不進這站。
@@ -188,12 +188,33 @@ NODE_PATH=/tmp/tsreg/node_modules node ~/Library/Mobile\ Documents/com~apple~Clo
 
 ## 視覺規範
 
-- 一個主色（酒紅 `#8B233D`）貫穿全站，不要在某個區塊換色
+**色票（全部定義在 `:root`，不要在元件裡寫死顏色）**
+
+| Token | 值 | 用途 |
+|---|---|---|
+| `--body-bg` | `#F8F9FB` | 頁面底，冷調紙白 |
+| `--header-bg` | `#F1F4F8` | header，比 body 深一階 |
+| `--ink` | `#1E242B` | 主要文字，冷墨近黑 |
+| `--sub-ink` | `#5C6570` | 次要文字 |
+| `--muted-ink` | `#6B747E` | 第三階文字，仍過 AA |
+| `--tertiary-ink` | `#9AA3AE` | **只能用在裝飾性圖示**，對比 2.7 過不了 AA |
+| `--accent` | `#1F5F8B` | 礦藍主色，主要按鈕、圖示 |
+| `--accent-bg` | `#E2EDF5` | 淡天藍底，ghost 按鈕、徽章 |
+| `--accent-deep` | `#123A56` | 深礦藍，淡底上的文字 |
+| `--accent-soft` | `#F1F7FB` | 極淡洗色，大面積淡底 |
+| `--accent-mid` | `#B5D6EA` | 徽章漸層第二站 |
+| `--ring` | `#1D4ED8` | 鍵盤焦點環，刻意跟 accent 不同色 |
+
+**規則**
+
+- 一個主色貫穿全站，不要在某個區塊換色
+- 主要按鈕用 `--accent`，不要用 `--ink`（冷色淺底配大塊近黑會顯得沉重、跟藍色家族脫節）
 - 圓角一律 18px（卡片）／999px（按鈕，全 pill）／10-13px（小元件），不要混
-- 所有文字色都要過 WCAG AA。`--tertiary-ink` 只有 2.96，**只能用在裝飾性圖示**；
-  要讀的字用 `--muted-ink`（4.75~4.96）或 `--sub-ink`（5.26+）
+- 所有文字色都要過 WCAG AA。要讀的字用 `--sub-ink`（5.9+）或 `--muted-ink`（4.75），
+  `--tertiary-ink` 只給裝飾圖示
 - 觸控目標 44px 起
 - 動效一律用 `prefers-reduced-motion` 包起來
+- **改配色時**：`tests/logic-check.js` 的 G15 會直接讀 CSS 變數重算對比，跑測試就知道有沒有改壞
 
 ---
 
@@ -206,5 +227,8 @@ NODE_PATH=/tmp/tsreg/node_modules node ~/Library/Mobile\ Documents/com~apple~Clo
 - 2026-08-07 **每支工具的使用說明**（`guide` 欄位驅動的說明 modal）；
   卡片加 audience／duration 快速判斷列；工具變多用的分組與搜尋；
   動作區改固定兩排避免按鈕亂換行；新增 `--muted-ink` 過 AA 的第三階文字色
+- 2026-08-07 **配色整組換成礦藍 + 冷調紙白**（清新有質感）。
+  不只換 accent，連底色都從暖米白離開暖色家族；主要按鈕從近黑改 accent；
+  59 項對比全數重算通過。新人手冊維持原本四分類色不動（刻意的品類區分，不同系統）
 </content>
 </invoke>
