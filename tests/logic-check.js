@@ -138,7 +138,7 @@ check("A8 隱藏工具→localStorage+empty state", station((d, w) => {
   t.dispatchEvent(new w.Event("change", { bubbles: true }));
   return w.localStorage.getItem("toolStationHiddenTools") === '["newbie-manual"]'
     && d.getElementById("hidden-all-state").style.display === "block"
-    && d.getElementById("tool-grid").innerHTML === "";
+    && d.getElementById("tool-groups").innerHTML === "";
 }), "");
 
 /* ========== N. 記住設定 / 全站共用個人資料 / 擴充性 ========== */
@@ -515,11 +515,252 @@ check("B1 無參數→預設 mac", manualWith("").activeCat === "mac", "");
     && r.text === "xlarge" && r.hiddenTabs.includes("watch") && r.header.includes("Hi, 阿哲"),
     JSON.stringify({ cat: r.activeCat, model: r.activeModel, view: r.view, text: r.text, hidden: r.hiddenTabs })); }
 
+/* ========== G. 使用說明 / 分組 / 搜尋（工具變多時的架構） ========== */
+
+const openGuide = (d, w, idx) =>
+  d.querySelectorAll("[data-guide]")[idx || 0].dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+
+// openBackdrop 的 .open class 是在 requestAnimationFrame 裡加的（避免 transition 不觸發），
+// 所以要等一個 frame 才讀得到。真實瀏覽器 16ms 內就完成，測試這裡明確等一下。
+const nextFrame = () => new Promise(r => setTimeout(r, 40));
+
+function stationAsync(fn) {
+  const dom = makeDom(STATION, "https://snowsepch.github.io/tool-station/");
+  return Promise.resolve(fn(dom.window.document, dom.window)).then(() => dom.window.close());
+}
+
+station((d, w) => {
+  const btn = d.querySelector(".tool-card [data-guide]");
+  check("G1 有寫 guide 的工具，卡片長出「使用說明」按鈕",
+    !!btn && btn.textContent.trim() === "使用說明", btn ? `按鈕="${btn.textContent.trim()}"` : "找不到按鈕");
+
+  const meta = d.querySelector(".tool-card .tool-meta");
+  check("G1b 卡片顯示 audience / duration 快速判斷列",
+    !!meta && meta.textContent.includes("新進夥伴") && meta.textContent.includes("30 秒"),
+    meta ? meta.textContent.replace(/\s+/g, " ").trim() : "無");
+});
+
+// 這三項牽涉 rAF，改用 async 版本，統一在檔案最後的 runAsync() 裡跑
+const asyncTests = [];
+
+asyncTests.push(() => stationAsync(async (d, w) => {
+  const bd = d.querySelector("[data-guide-backdrop]");
+  const closedOk = bd.hasAttribute("inert") && !bd.classList.contains("open");
+  openGuide(d, w);
+  await nextFrame();
+  const body = d.querySelector("[data-guide-body]");
+  const heads = [...body.querySelectorAll(".guide-block h3")].map(h => h.textContent.trim());
+  check("G2 點使用說明會開啟 modal 並帶出完整區塊",
+    !bd.hasAttribute("inert") && bd.classList.contains("open") && closedOk
+    && !!body.querySelector(".guide-summary")
+    && heads.join("｜") === "什麼時候用它｜這支不做什麼｜怎麼操作｜小提醒｜常見問題",
+    `區塊=${heads.join("｜")}`);
+
+  check("G2b 標題與副標帶入工具名稱與適用對象",
+    d.getElementById("guide-title").textContent === "新人快速上手手冊 使用說明"
+    && d.querySelector("[data-guide-sub]").textContent.startsWith("適合："),
+    `title="${d.getElementById("guide-title").textContent}"`);
+
+  const steps = body.querySelectorAll(".guide-steps li");
+  const faq = body.querySelectorAll(".guide-faq details");
+  check("G3 步驟與 FAQ 依登錄表數量渲染，步驟允許 <strong> 標關鍵按鈕",
+    steps.length === 6 && faq.length === 3 && !!body.querySelector(".guide-steps strong"),
+    `步驟 ${steps.length} 步｜FAQ ${faq.length} 題`);
+
+  check("G3b FAQ 用原生 details，預設全部收合", [...faq].every(x => !x.open), "");
+}));
+
+asyncTests.push(() => stationAsync(async (d, w) => {
+  openGuide(d, w);
+  await nextFrame();
+  d.dispatchEvent(new w.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  const bd = d.querySelector("[data-guide-backdrop]");
+  check("G4 Esc 關閉使用說明並歸還 inert",
+    !bd.classList.contains("open") && bd.hasAttribute("inert"), "");
+}));
+
+asyncTests.push(() => stationAsync(async (d, w) => {
+  openGuide(d, w);
+  await nextFrame();
+  d.querySelector("[data-guide-to-personalize]").click();
+  await nextFrame();
+  check("G5 從說明底部可直接接到個人化（說明關閉、個人化開啟）",
+    !d.querySelector("[data-guide-backdrop]").classList.contains("open")
+    && d.querySelector("[data-modal-backdrop]").classList.contains("open")
+    && !!d.querySelector("#pf-name"), "");
+}));
+
+// 說明裡的「開啟工具」要跟著個人化設定走，不然看完說明點開卻是原版
+station((d, w) => {
+  openModal(d, w);
+  d.querySelector("#pf-name").value = "小柔";
+  const url = gen(d);
+  d.querySelector("[data-modal-close]").click();
+  openGuide(d, w);
+  const href = d.querySelector(".guide-actions .btn-primary").getAttribute("href");
+  check("G6 說明底部「開啟工具」帶上已存的個人化設定", href === url, `href=${href}`);
+});
+
+// 工具變多的情境：分組標題、搜尋框門檻、搜尋比對範圍
+{
+  const many = (code) => code.replace(/^\s*\];\s*$/m, `,
+    { id: "t2", name: "檔期倒數圖", desc: "產生整組每日倒數社群圖", icon: "ph-calendar",
+      baseUrl: "https://example.com/t2/", group: "檔期支援", audience: "社群小編", duration: "3 分鐘",
+      guide: { summary: "一次設定，整個檔期的倒數圖都出好。", steps: ["設定檔期", "下載"] } },
+    { id: "t3", name: "配件陳列建議", desc: "排名對應花車陳列", icon: "ph-shopping-bag",
+      baseUrl: "https://example.com/t3/", group: "檔期支援" },
+    { id: "t4", name: "庫存水位表", desc: "補貨提醒", icon: "ph-package",
+      baseUrl: "https://example.com/t4/", group: "營運日常", keywords: ["補貨", "安全庫存"] },
+    { id: "t5", name: "沒分組的工具", desc: "隨手小工具", icon: "ph-wrench",
+      baseUrl: "https://example.com/t5/" }
+  ];`);
+
+  const dom = reload({}, many);
+  const d = dom.window.document, w = dom.window;
+  const heads = [...d.querySelectorAll(".group-head")].map(h => h.firstChild.textContent.trim());
+  check("G7 工具變多自動分組，未分組的歸「其他工具」並排最後",
+    heads.join("｜") === "新人上手｜檔期支援｜營運日常｜其他工具", `分組=${heads.join("｜")}`);
+
+  const counts = [...d.querySelectorAll(".group-count")].map(c => c.textContent.trim());
+  check("G7b 每組顯示支數", counts.join(",") === "1 支,2 支,1 支,1 支", counts.join(","));
+
+  check("G8 工具滿 5 支才長出搜尋框",
+    d.querySelector("[data-search-row]").classList.contains("show"), "");
+
+  const search = d.querySelector("[data-tool-search]");
+  const type = (v) => { search.value = v; search.dispatchEvent(new w.Event("input", { bubbles: true })); };
+
+  type("倒數");
+  check("G9 搜尋比對名稱", d.querySelectorAll(".tool-card").length === 1
+    && d.querySelector(".tool-card h3").textContent === "檔期倒數圖",
+    `${d.querySelectorAll(".tool-card").length} 張卡`);
+
+  type("安全庫存");
+  check("G9b 搜尋比對 keywords（名稱與說明沒寫到的講法）",
+    d.querySelectorAll(".tool-card").length === 1
+    && d.querySelector(".tool-card h3").textContent === "庫存水位表", "");
+
+  type("話術");
+  check("G9c 搜尋比對 guide.summary", d.querySelectorAll(".tool-card").length === 1
+    && d.querySelector(".tool-card h3").textContent === "新人快速上手手冊", "");
+
+  type("檔期");
+  check("G9d 命中同一組時只留該組標題",
+    [...d.querySelectorAll(".group-head")].map(h => h.firstChild.textContent.trim()).join("｜") === "檔期支援"
+    || d.querySelectorAll(".tool-card").length === 2,
+    `卡片 ${d.querySelectorAll(".tool-card").length} 張`);
+
+  type("不存在的東西");
+  check("G10 搜尋無結果給提示而不是空白畫面",
+    !!d.querySelector(".search-empty") && d.querySelector(".search-empty").textContent.includes("不存在的東西"), "");
+
+  type("");
+  check("G10b 清空搜尋後全部回來", d.querySelectorAll(".tool-card").length === 5, "");
+
+  // 沒寫 guide 的工具不長說明按鈕，也不會因此壞掉
+  check("G11 沒寫 guide 的工具不長說明按鈕",
+    [...d.querySelectorAll(".tool-card")].filter(c => c.querySelector("[data-guide]")).length === 2,
+    `有說明按鈕的卡片 ${[...d.querySelectorAll(".tool-card")].filter(c => c.querySelector("[data-guide]")).length} 張`);
+
+  // 搜尋條件還在時把工具隱藏到門檻以下，搜尋框收起來但殘留條件不能把卡片洗掉
+  type("倒數");
+  d.querySelector("[data-open-visibility]").click();
+  ["t2", "t3", "t4"].forEach(id => {
+    const t = d.querySelector(`[data-visibility-toggle="${id}"]`);
+    t.checked = false;
+    t.dispatchEvent(new w.Event("change", { bubbles: true }));
+  });
+  check("G12 隱藏到剩不到 5 支時收起搜尋框，並清掉殘留條件避免畫面空白",
+    !d.querySelector("[data-search-row]").classList.contains("show")
+    && d.querySelector("[data-tool-search]").value === ""
+    && d.querySelectorAll(".tool-card").length === 2
+    && !d.querySelector(".search-empty"),
+    `卡片 ${d.querySelectorAll(".tool-card").length} 張`);
+
+  dom.window.close();
+}
+
+// guide 內容含 HTML 特殊字元不能破版（只有 <strong> 例外放行）
+{
+  const evil = (code) => code.replace(/^\s*\];\s*$/m, `,
+    { id: "evil", name: "轉義測試", desc: "d", icon: "ph-bug", baseUrl: "https://example.com/",
+      guide: { summary: "<img src=x onerror=alert(1)> & \\"引號\\"",
+               for: ["<script>bad()</scr" + "ipt>"],
+               steps: ["按 <strong>開始</strong> 然後 <b>不該生效</b>"],
+               faq: [{ q: "<i>問</i>", a: "<i>答</i>" }] } }
+  ];`);
+  const dom = reload({}, evil);
+  const d = dom.window.document, w = dom.window;
+  const card = [...d.querySelectorAll(".tool-card")].find(c => c.querySelector("h3").textContent === "轉義測試");
+  card.querySelector("[data-guide]").dispatchEvent(new w.MouseEvent("click", { bubbles: true }));
+  const body = d.querySelector("[data-guide-body]");
+  check("G13 guide 內容轉義：只放行 <strong>，其他標籤不生效",
+    body.querySelector(".guide-summary").textContent.includes("<img src=x onerror=alert(1)>")
+    && !body.querySelector("img") && !body.querySelector(".guide-list script")
+    && !!body.querySelector(".guide-steps strong")
+    && !body.querySelector(".guide-steps b")
+    && body.querySelector(".guide-faq summary").textContent.includes("<i>問</i>")
+    && !body.querySelector(".guide-faq i"),
+    "");
+  dom.window.close();
+}
+
+// 登錄表健檢：漏寫 guide 要在主控台叫出來，不是靜悄悄上線
+{
+  const noGuide = (code) => code.replace(/^\s*\];\s*$/m, `,
+    { id: "silent", name: "沒說明的工具", desc: "d", icon: "ph-wrench", baseUrl: "https://example.com/" }
+  ];`);
+  const logs = [];
+  const dom = new JSDOM(fs.readFileSync(STATION, "utf8"), {
+    url: "https://snowsepch.github.io/tool-station/", runScripts: "outside-only", pretendToBeVisual: true
+  });
+  dom.window.console.warn = (...a) => logs.push(a.join(" "));
+  dom.window.eval(noGuide(fs.readFileSync(STATION, "utf8").match(/<script>([\s\S]*)<\/script>/)[1]));
+  check("G14 登錄表漏寫 guide 會在主控台警告（工具變多時的防呆）",
+    logs.some(l => l.includes("silent") && l.includes("guide")), logs.join(" ｜ ") || "沒有警告");
+  dom.window.close();
+}
+
+// 色彩對比：新元素用的 token 必須過 AA。這裡讀真實 CSS 變數值，改壞了會被抓到。
+{
+  const css = fs.readFileSync(STATION, "utf8");
+  const tok = (name) => (css.match(new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})`)) || [])[1];
+  const lum = (h) => {
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16) / 255)
+      .map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const cr = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+
+  const ink = tok("ink"), sub = tok("sub-ink"), muted = tok("muted-ink");
+  const body = tok("body-bg"), accent = tok("accent"), accentBg = tok("accent-bg");
+  const accentDeep = tok("accent-deep"), accentSoft = tok("accent-soft"), white = "#FFFFFF";
+
+  const pairs = [
+    ["說明步驟編號 白字/accent", white, accent, 4.5],
+    ["說明摘要 accent-deep/accent-bg", accentDeep, accentBg, 4.5],
+    ["說明內文 sub-ink/body", sub, body, 4.5],
+    ["說明區塊標題 ink/body", ink, body, 4.5],
+    ["卡片 meta 文字 sub-ink/accent-soft", sub, accentSoft, 4.5],
+    ["分組支數 muted-ink/body", muted, body, 4.5],
+    ["搜尋 placeholder muted-ink/white", muted, white, 4.5],
+    ["不適用圖示 muted-ink/body（非文字 3:1）", muted, body, 3.0]
+  ];
+  const bad = pairs.filter(([, f, b, t]) => cr(f, b) < t);
+  check("G15 新元素色彩對比全數通過 WCAG AA",
+    bad.length === 0,
+    pairs.map(([n, f, b]) => `${n} ${cr(f, b).toFixed(2)}`).join("｜"));
+}
+
 /* ========== 輸出 ========== */
-console.log("");
-let fail = 0;
-results.forEach(r => { if (!r.pass) fail++; console.log(`${r.pass ? "PASS" : "FAIL"}  ${r.name}${r.detail ? "\n      " + r.detail : ""}`); });
-const real = warns.filter(w => !/Not implemented|Could not load|css|stylesheet/i.test(w));
-console.log("\n主控台警告 / 錯誤：" + (real.length ? "\n  " + real.join("\n  ") : "無"));
-console.log(`\n===== ${results.length - fail} pass / ${fail} fail =====`);
-process.exit(fail ? 1 : 0);
+(async () => {
+  for (const t of asyncTests) await t();
+
+  console.log("");
+  let fail = 0;
+  results.forEach(r => { if (!r.pass) fail++; console.log(`${r.pass ? "PASS" : "FAIL"}  ${r.name}${r.detail ? "\n      " + r.detail : ""}`); });
+  const real = warns.filter(w => !/Not implemented|Could not load|css|stylesheet/i.test(w));
+  console.log("\n主控台警告 / 錯誤：" + (real.length ? "\n  " + real.join("\n  ") : "無"));
+  console.log(`\n===== ${results.length - fail} pass / ${fail} fail =====`);
+  if (fail) process.exitCode = 1;
+})();

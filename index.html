@@ -20,6 +20,9 @@
     --ink: #221D18;
     --sub-ink: #6E6862;
     --tertiary-ink: #9C958C;
+    /* 第三階文字：比 sub-ink 再淡一階，但仍過 WCAG AA（對白底 4.96、對頁面底 4.75）。
+       --tertiary-ink 只有 2.96，僅供裝飾性圖示與純點綴文字，真正要讀的字用這個。 */
+    --muted-ink: #766F65;
     --line: #EAE4D6;
     --card-line: #EFEBE1;
     --shadow-soft: rgba(64, 54, 38, 0.06);
@@ -160,9 +163,63 @@
   }
 
   .section-note {
-    margin: -8px 0 16px;
+    margin: -6px 0 16px;
     font-size: 12.5px;
+    line-height: 1.6;
     color: var(--sub-ink);
+  }
+
+  .section-note i { color: var(--accent); margin-right: 4px; }
+
+  /* ---------- 搜尋（工具數量到門檻才出現，見 JS 的 SEARCH_MIN） ---------- */
+  .tool-search-row { display: none; margin-bottom: 18px; }
+  .tool-search-row.show { display: block; }
+
+  .tool-search-field { position: relative; }
+
+  .tool-search-field > i {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 17px;
+    color: var(--sub-ink);
+    pointer-events: none;
+  }
+
+  .tool-search-field input {
+    width: 100%;
+    border: 1px solid var(--card-line);
+    border-radius: 999px;
+    padding: 12px 16px 12px 38px;
+    min-height: 44px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #FFFFFF;
+  }
+
+  .tool-search-field input::placeholder { color: var(--muted-ink); }
+  .tool-search-field input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+  /* ---------- 分組（只有出現兩種以上分類才長標題） ---------- */
+  .tool-groups { display: flex; flex-direction: column; gap: 32px; margin-bottom: 44px; }
+
+  .group-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--accent-deep);
+  }
+
+  .group-head .group-count {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--muted-ink);
+    font-variant-numeric: tabular-nums;
   }
 
   /* ---------- Tool card grid ---------- */
@@ -170,8 +227,19 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 18px;
-    margin-bottom: 44px;
   }
+
+  .search-empty {
+    border: 1.5px dashed var(--card-line);
+    border-radius: 18px;
+    padding: 28px 20px;
+    text-align: center;
+    background: #FFFFFF;
+    color: var(--sub-ink);
+    font-size: 13px;
+  }
+
+  .search-empty i { font-size: 24px; color: var(--muted-ink); display: block; margin-bottom: 8px; }
 
   .tool-card {
     background: #FFFFFF;
@@ -222,6 +290,28 @@
     flex: 1;
   }
 
+  /* 卡片上的「誰會用到／花多久」快速判斷列：不點進說明也知道這支關不關自己的事 */
+  .tool-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tool-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--sub-ink);
+    background: var(--accent-soft);
+    border: 1px solid var(--card-line);
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+
+  .tool-meta span i { font-size: 13px; color: var(--accent); }
+
   /* 已存個人化設定的標記＋清除入口 */
   .tool-flag {
     display: flex;
@@ -253,7 +343,15 @@
 
   .tool-flag button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 
-  .tool-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* 動作區固定兩排：主要動作獨佔一排，說明與個人化並排。
+     三顆按鈕靠 flex-wrap 自由換行會在不同寬度斷在不同位置，看起來像沒排好。 */
+  .tool-actions { display: flex; flex-direction: column; gap: 8px; }
+
+  .tool-actions .btn-row { display: flex; gap: 8px; }
+
+  .tool-actions .btn-row .btn { flex: 1 1 0; justify-content: center; min-width: 0; }
+
+  .tool-actions > .btn { justify-content: center; }
 
   .btn {
     display: inline-flex;
@@ -729,6 +827,183 @@
     line-height: 1.55;
     color: var(--accent-deep);
   }
+
+  /* ============================================================
+     使用說明（每支工具的基本操作簡介）
+     內容由 TOOLS[].guide 驅動，區塊有寫才長，沒寫就不佔位。
+     ============================================================ */
+  .guide-summary {
+    margin: 14px 0 0;
+    padding: 13px 15px;
+    border-radius: 12px;
+    background: var(--accent-bg);
+    color: var(--accent-deep);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .guide-block { margin-top: 20px; }
+
+  .guide-block h3 {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--ink);
+  }
+
+  .guide-block h3 i { font-size: 16px; color: var(--accent); }
+
+  /* 適用情境／不適用：一行一項，靠圖示分辨正反，不用色塊硬碰 */
+  .guide-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+  .guide-list li {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--sub-ink);
+  }
+
+  .guide-list li i { flex: 0 0 auto; font-size: 15px; margin-top: 2px; color: var(--accent); }
+  /* 「這支不做什麼」用中性灰跟正面條目區隔，但仍過非文字 3:1（4.75） */
+  .guide-list.is-negative li i { color: var(--muted-ink); }
+
+  /* 操作步驟：編號用 tabular-nums，步數多了才對得齊 */
+  .guide-steps { list-style: none; margin: 0; padding: 0; counter-reset: gstep; }
+
+  .guide-steps li {
+    counter-increment: gstep;
+    position: relative;
+    padding: 0 0 16px 34px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--sub-ink);
+  }
+
+  .guide-steps li::before {
+    content: counter(gstep);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 23px;
+    height: 23px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #FFFFFF;
+    font-size: 11.5px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 步驟之間的連接線，最後一步不畫 */
+  .guide-steps li::after {
+    content: "";
+    position: absolute;
+    left: 11px;
+    top: 27px;
+    bottom: 4px;
+    width: 1px;
+    background: var(--card-line);
+  }
+
+  .guide-steps li:last-child { padding-bottom: 0; }
+  .guide-steps li:last-child::after { display: none; }
+
+  .guide-steps li strong { color: var(--ink); font-weight: 700; }
+
+  /* 小提醒：不是警告，是「知道會少走冤枉路」的那種 */
+  .guide-tips { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+
+  .guide-tips li {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #FFFFFF;
+    border: 1px solid var(--card-line);
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--sub-ink);
+  }
+
+  .guide-tips li i { flex: 0 0 auto; font-size: 15px; margin-top: 1px; color: var(--accent); }
+
+  /* 常見問題：用 details 原生摺疊，不寫額外 JS */
+  .guide-faq { display: flex; flex-direction: column; gap: 8px; }
+
+  .guide-faq details {
+    border: 1px solid var(--card-line);
+    border-radius: 10px;
+    background: #FFFFFF;
+    overflow: hidden;
+  }
+
+  .guide-faq summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+  }
+
+  .guide-faq summary::-webkit-details-marker { display: none; }
+
+  .guide-faq summary::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-right: 1.6px solid var(--accent);
+    border-bottom: 1.6px solid var(--accent);
+    transform: rotate(-45deg);
+    transition: transform 0.2s ease;
+  }
+
+  .guide-faq details[open] summary::before { transform: rotate(45deg); }
+
+  .guide-faq summary:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+
+  .guide-faq p {
+    margin: 0;
+    padding: 0 14px 13px 29px;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--sub-ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .guide-faq summary::before { transition: none; }
+  }
+
+  /* 說明底部：直接開工具／去做個人化，看完就能動手 */
+  .guide-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--card-line);
+  }
+
+  .guide-actions .btn { flex: 1 1 auto; justify-content: center; }
+
+  .guide-empty {
+    margin: 16px 0 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--sub-ink);
+  }
 </style>
 </head>
 <body>
@@ -752,7 +1027,18 @@
       <i class="ph ph-sliders-horizontal"></i>選擇顯示
     </button>
   </div>
-  <div class="tool-grid" id="tool-grid"></div>
+  <p class="section-note">
+    <i class="ph ph-info"></i>每支工具都有「使用說明」，第一次用先點開看兩分鐘，知道它幫你解決什麼、怎麼操作。
+  </p>
+
+  <div class="tool-search-row" data-search-row>
+    <div class="tool-search-field">
+      <i class="ph ph-magnifying-glass"></i>
+      <input type="search" data-tool-search placeholder="搜尋工具名稱或用途" aria-label="搜尋工具" />
+    </div>
+  </div>
+
+  <div class="tool-groups" id="tool-groups"></div>
   <div class="hidden-all-state" id="hidden-all-state" style="display:none;">
     <i class="ph ph-eye-slash"></i>
     <strong>目前所有工具都被隱藏了</strong>
@@ -832,13 +1118,46 @@
   </div>
 </div>
 
+<div class="modal-backdrop" data-guide-backdrop inert>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="guide-title" data-modal-panel>
+    <div class="modal-head">
+      <div>
+        <h2 id="guide-title">使用說明</h2>
+        <p data-guide-sub></p>
+      </div>
+      <button type="button" class="modal-close" data-guide-close aria-label="關閉">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
+
+    <div data-guide-body></div>
+  </div>
+</div>
+
 <script>
   /* ============================================================
      工具登錄表
-     日後新增通用工具只需在此加一筆，卡片、個人化表單、防呆限制、
-     記住設定、QR code 全都會自動長出來，不用改下面的邏輯。
+     日後新增通用工具只需在此加一筆，卡片、使用說明、分組、搜尋、
+     個人化表單、防呆限制、記住設定、QR code 全都會自動長出來，
+     不用改下面的邏輯。
 
      必填：id / name / desc / icon / baseUrl
+
+     選填：group        分組標題（例如「新人上手」「檔期支援」）。
+                        沒填的歸到「其他工具」。只有出現兩種以上分組時
+                        才會顯示分組標題，工具還少的時候版面不會多一層。
+     選填：audience     這支給誰用（顯示在卡片上，一眼判斷關不關自己的事）
+     選填：duration     大概花多久（同上）
+     選填：keywords[]   搜尋用的補充關鍵字，名稱/說明沒寫到的講法寫這裡
+
+     選填：guide（使用說明，強烈建議每支都寫，這是夥伴第一次開工具的入口）
+       guide.summary    一段話講清楚「這支解決什麼問題」，必填才有意義
+       guide.for[]      適用情境，什麼時候該打開它
+       guide.notFor[]   不適用情境，避免夥伴拿錯工具（選填）
+       guide.steps[]    操作步驟，一步一句，可用 <strong> 標關鍵按鈕名稱
+       guide.tips[]     小提醒（選填）
+       guide.faq[]      { q, a } 常見問題（選填）
+
      選填：personalize（沒有這個欄位的工具，卡片就不會出現個人化按鈕）
        personalize.subtitle    modal 副標
        personalize.constraints 宣告式防呆規則（見下方 applyConstraints）
@@ -854,6 +1173,41 @@
       desc: "17 款現役機型 30 秒速查，含記憶特色、Demo 情境、銷售話術，新人上線前快速惡補。",
       icon: "ph-graduation-cap",
       baseUrl: "https://snowsepch.github.io/newbie-manual/",
+      group: "新人上手",
+      audience: "新進夥伴、支援其他品類的夥伴",
+      duration: "查一台機型約 30 秒",
+      keywords: ["機型", "規格", "話術", "Demo", "Mac", "iPad", "iPhone", "Watch", "新人", "訓練"],
+      guide: {
+        summary: "把現役 17 款機型的重點濃縮成一頁：規格、3 個記憶特色、Demo 怎麼做、30 秒話術怎麼講。客人站在你面前、腦中一片空白的時候，掏出手機就能對答案。",
+        for: [
+          "剛上線還記不住機型差異，接待前先掃一眼",
+          "平常顧 iPhone，臨時被調去支援 Mac 或 Watch",
+          "客人問「這台跟那台差在哪」，需要一句話講完",
+          "帶新人時當作共同教材，大家講的版本一致"
+        ],
+        notFor: [
+          "查即時價格或庫存，這裡只有規格與話術",
+          "查停產機型，內容只涵蓋現役品項"
+        ],
+        steps: [
+          "用手機開啟，畫面比照手機比例設計，站著單手就能操作。",
+          "底部四個分頁切換 <strong>Mac／iPad／iPhone／Watch</strong>。",
+          "點上方的機型按鈕，從底部彈出的清單挑要看的那一款。",
+          "由上往下看：規格速覽 → 3 個記憶特色 → Demo 情境 → 30 秒銷售話術。",
+          "話術卡右下角點 <strong>複製話術</strong>，可以貼到自己的筆記再改成自己的講法。",
+          "常用的話，回工具站點 <strong>個人化設定</strong>，把常顧的機型設成預設，開啟就直接到那一頁。"
+        ],
+        tips: [
+          "話術是骨架不是稿子，照著念會很生硬，抓住三個關鍵詞用自己的話講。",
+          "個人化連結產生後，用手機 Safari 開啟點分享鈕選「加入主畫面」，就變成手機上的一顆捷徑。",
+          "只顧特定品類的話，個人化時把用不到的分類隱藏起來，選單會清爽很多。"
+        ],
+        faq: [
+          { q: "機型改朝換代了，內容會自己更新嗎？", a: "不會。內容是人工查證官網後更新的，發現規格對不上或有新機上市，跟我說一聲就會更新。" },
+          { q: "我設定的個人化，其他夥伴看得到嗎？", a: "看不到。設定只存在你這台裝置的瀏覽器裡，也只影響你自己開的那個連結。" },
+          { q: "換手機或清了瀏覽器資料，設定會不見嗎？", a: "會。重新設定一次即可；或者先把個人化連結存成書籤／加到主畫面，換裝置時直接開那個連結就好。" }
+        ]
+      },
       personalize: {
         subtitle: "填上暱稱、門市、常用分類，或自己寫一句話，產生你自己的捷徑連結",
         constraints: [
@@ -968,6 +1322,17 @@
           if (!keys.has(k)) console.warn(`[工具站] ${t.id} 的 constraint 指向不存在的欄位：${k}`);
         });
       });
+
+      // 使用說明：不是硬性必填，但沒寫等於把「這支怎麼用」丟給夥伴自己猜
+      if (!t.guide) {
+        console.warn(`[工具站] ${t.id} 沒有寫 guide 使用說明，夥伴第一次開會不知道怎麼用。`);
+      } else {
+        if (!t.guide.summary) console.warn(`[工具站] ${t.id} 的 guide 缺 summary（一句話講清楚它解決什麼問題）。`);
+        if (!(t.guide.steps || []).length) console.warn(`[工具站] ${t.id} 的 guide 缺 steps 操作步驟。`);
+        (t.guide.faq || []).forEach(f => {
+          if (!f || !f.q || !f.a) console.warn(`[工具站] ${t.id} 的 faq 有缺 q 或 a 的項目：`, f);
+        });
+      }
     });
   })();
 
@@ -1030,35 +1395,59 @@
     return Object.values(prefs).some(v => Array.isArray(v) ? v.length > 0 : String(v || "").trim() !== "");
   }
 
-  /* ---------- 卡片牆 ---------- */
-  const gridEl = document.getElementById("tool-grid");
+  /* ---------- 卡片牆：分組 + 搜尋 ----------
+     工具還少的時候看起來就是一片卡片牆（不長分組標題、不長搜尋框），
+     工具變多才自動長出分組與搜尋，不用之後回頭改版面。 */
+  const groupsEl = document.getElementById("tool-groups");
   const hiddenAllState = document.getElementById("hidden-all-state");
+  const searchRow = document.querySelector("[data-search-row]");
+  const searchInput = document.querySelector("[data-tool-search]");
 
-  function renderGrid() {
-    const hidden = getHiddenIds();
-    const visibleTools = TOOLS.filter(t => !hidden.includes(t.id));
+  const SEARCH_MIN = 5;        // 工具滿這個數量才顯示搜尋框
+  const OTHER_GROUP = "其他工具";
+  let searchTerm = "";
 
-    if (visibleTools.length === 0) {
-      gridEl.style.display = "none";
-      gridEl.innerHTML = "";
-      hiddenAllState.style.display = "block";
-      return;
-    }
+  function matchesSearch(tool, term) {
+    if (!term) return true;
+    const hay = [
+      tool.name, tool.desc, tool.group, tool.audience,
+      ...(tool.keywords || []),
+      tool.guide && tool.guide.summary
+    ].filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(term);
+  }
 
-    gridEl.style.display = "grid";
-    hiddenAllState.style.display = "none";
+  // 依 TOOLS 陣列裡第一次出現的順序決定分組先後，登錄表怎麼排畫面就怎麼排
+  function groupTools(tools) {
+    const order = [];
+    const map = new Map();
+    tools.forEach(t => {
+      const key = t.group || OTHER_GROUP;
+      if (!map.has(key)) { map.set(key, []); order.push(key); }
+      map.get(key).push(t);
+    });
+    // 「其他工具」永遠排最後，避免沒分組的工具卡在中間
+    const sorted = order.filter(k => k !== OTHER_GROUP);
+    if (order.includes(OTHER_GROUP)) sorted.push(OTHER_GROUP);
+    return sorted.map(key => ({ key, tools: map.get(key) }));
+  }
 
-    gridEl.innerHTML = visibleTools.map(t => {
-      const canPersonalize = !!(t.personalize && (t.personalize.fields || []).length);
-      const prefs = canPersonalize ? getToolPrefs(t.id) : null;
-      const personalized = hasPrefs(prefs);
-      const openUrl = personalized ? buildUrl(t, prefs) : t.baseUrl;
+  function cardHTML(t) {
+    const canPersonalize = !!(t.personalize && (t.personalize.fields || []).length);
+    const prefs = canPersonalize ? getToolPrefs(t.id) : null;
+    const personalized = hasPrefs(prefs);
+    const openUrl = personalized ? buildUrl(t, prefs) : t.baseUrl;
+    const meta = [
+      t.audience ? `<span><i class="ph ph-users-three"></i>${escapeHtml(t.audience)}</span>` : "",
+      t.duration ? `<span><i class="ph ph-timer"></i>${escapeHtml(t.duration)}</span>` : ""
+    ].join("");
 
-      return `
+    return `
       <div class="tool-card">
         <div class="tool-icon"><i class="ph ${escapeHtml(t.icon)}"></i></div>
         <h3>${escapeHtml(t.name)}</h3>
         <p>${escapeHtml(t.desc)}</p>
+        ${meta ? `<div class="tool-meta">${meta}</div>` : ""}
         ${personalized ? `
           <div class="tool-flag">
             <i class="ph ph-user-check"></i>已套用你的設定
@@ -1069,16 +1458,76 @@
           <a class="btn btn-primary" href="${escapeHtml(openUrl)}" target="_blank" rel="noopener">
             <i class="ph ph-arrow-square-out"></i>${personalized ? "開啟我的版本" : "開啟工具"}
           </a>
-          ${canPersonalize ? `
-            <button type="button" class="btn btn-ghost" data-personalize="${escapeHtml(t.id)}">
-              <i class="ph ph-sliders-horizontal"></i>${personalized ? "調整設定" : "個人化設定"}
-            </button>
+          ${(t.guide || canPersonalize) ? `
+            <div class="btn-row">
+              ${t.guide ? `
+                <button type="button" class="btn btn-ghost" data-guide="${escapeHtml(t.id)}">
+                  <i class="ph ph-book-open-text"></i>使用說明
+                </button>
+              ` : ""}
+              ${canPersonalize ? `
+                <button type="button" class="btn btn-ghost" data-personalize="${escapeHtml(t.id)}">
+                  <i class="ph ph-sliders-horizontal"></i>${personalized ? "調整設定" : "個人化"}
+                </button>
+              ` : ""}
+            </div>
           ` : ""}
         </div>
       </div>
     `;
-    }).join("");
   }
+
+  function renderGrid() {
+    const hidden = getHiddenIds();
+    const visibleTools = TOOLS.filter(t => !hidden.includes(t.id));
+
+    searchRow.classList.toggle("show", visibleTools.length >= SEARCH_MIN);
+    if (visibleTools.length < SEARCH_MIN && searchTerm) {
+      // 隱藏工具讓數量掉回門檻以下時，把殘留的搜尋條件一併清掉
+      searchTerm = "";
+      searchInput.value = "";
+    }
+
+    if (visibleTools.length === 0) {
+      groupsEl.style.display = "none";
+      groupsEl.innerHTML = "";
+      hiddenAllState.style.display = "block";
+      return;
+    }
+
+    groupsEl.style.display = "flex";
+    hiddenAllState.style.display = "none";
+
+    const matched = visibleTools.filter(t => matchesSearch(t, searchTerm));
+    if (matched.length === 0) {
+      groupsEl.innerHTML = `
+        <div class="search-empty">
+          <i class="ph ph-magnifying-glass"></i>
+          找不到符合「${escapeHtml(searchTerm)}」的工具，換個關鍵字試試。
+        </div>`;
+      return;
+    }
+
+    const grouped = groupTools(matched);
+    const showHeads = grouped.length > 1;
+
+    groupsEl.innerHTML = grouped.map(g => `
+      <section>
+        ${showHeads ? `
+          <h2 class="group-head">
+            ${escapeHtml(g.key)}
+            <span class="group-count">${g.tools.length} 支</span>
+          </h2>
+        ` : ""}
+        <div class="tool-grid">${g.tools.map(cardHTML).join("")}</div>
+      </section>
+    `).join("");
+  }
+
+  searchInput.addEventListener("input", () => {
+    searchTerm = searchInput.value.trim().toLowerCase();
+    renderGrid();
+  });
 
   renderGrid();
 
@@ -1323,7 +1772,10 @@
     if (activeTool) applyConstraints(activeTool);
   });
 
-  gridEl.addEventListener("click", (e) => {
+  groupsEl.addEventListener("click", (e) => {
+    const guideBtn = e.target.closest("[data-guide]");
+    if (guideBtn) { openGuide(guideBtn.dataset.guide); return; }
+
     const personalizeBtn = e.target.closest("[data-personalize]");
     if (personalizeBtn) { openPersonalize(personalizeBtn.dataset.personalize); return; }
 
@@ -1739,6 +2191,112 @@
     qrMsg.textContent = "用手機相機掃這個 QR code，就會直接開啟你的專屬版本。";
   });
 
+  /* ============================================================
+     使用說明 modal
+     整份內容由 TOOLS[].guide 產生，沒寫的區塊自動不出現。
+     日後新工具只要在登錄表補 guide，說明頁就自己長出來。
+     ============================================================ */
+  const guideBackdrop = document.querySelector("[data-guide-backdrop]");
+  const guideSub = document.querySelector("[data-guide-sub]");
+  const guideBody = document.querySelector("[data-guide-body]");
+  const guideTitle = document.getElementById("guide-title");
+
+  // 步驟允許用 <strong> 標關鍵按鈕名稱，所以先整段轉義再放行這一個標籤
+  function allowStrong(text) {
+    return escapeHtml(text)
+      .replace(/&lt;strong&gt;/g, "<strong>")
+      .replace(/&lt;\/strong&gt;/g, "</strong>");
+  }
+
+  function guideBlock(title, icon, inner) {
+    if (!inner) return "";
+    return `
+      <div class="guide-block">
+        <h3><i class="ph ${icon}"></i>${escapeHtml(title)}</h3>
+        ${inner}
+      </div>`;
+  }
+
+  function guideHTML(tool) {
+    const g = tool.guide;
+    if (!g) return `<p class="guide-empty">這支工具還沒有寫使用說明，直接開啟通常也不難用。用起來卡卡的話跟我說一聲，我補上去。</p>`;
+
+    const canPersonalize = !!(tool.personalize && (tool.personalize.fields || []).length);
+    const prefs = canPersonalize ? getToolPrefs(tool.id) : null;
+    const openUrl = hasPrefs(prefs) ? buildUrl(tool, prefs) : tool.baseUrl;
+
+    const list = (items, negative) => (items || []).length ? `
+      <ul class="guide-list${negative ? " is-negative" : ""}">
+        ${items.map(x => `<li><i class="ph ${negative ? "ph-x-circle" : "ph-check-circle"}"></i><span>${escapeHtml(x)}</span></li>`).join("")}
+      </ul>` : "";
+
+    const steps = (g.steps || []).length ? `
+      <ol class="guide-steps">
+        ${g.steps.map(s => `<li>${allowStrong(s)}</li>`).join("")}
+      </ol>` : "";
+
+    const tips = (g.tips || []).length ? `
+      <ul class="guide-tips">
+        ${g.tips.map(t => `<li><i class="ph ph-lightbulb"></i><span>${allowStrong(t)}</span></li>`).join("")}
+      </ul>` : "";
+
+    const faq = (g.faq || []).filter(f => f && f.q && f.a);
+    const faqHTML = faq.length ? `
+      <div class="guide-faq">
+        ${faq.map(f => `
+          <details>
+            <summary>${escapeHtml(f.q)}</summary>
+            <p>${escapeHtml(f.a)}</p>
+          </details>
+        `).join("")}
+      </div>` : "";
+
+    return `
+      ${g.summary ? `<p class="guide-summary">${escapeHtml(g.summary)}</p>` : ""}
+      ${guideBlock("什麼時候用它", "ph-target", list(g.for, false))}
+      ${guideBlock("這支不做什麼", "ph-prohibit", list(g.notFor, true))}
+      ${guideBlock("怎麼操作", "ph-list-numbers", steps)}
+      ${guideBlock("小提醒", "ph-lightbulb", tips)}
+      ${guideBlock("常見問題", "ph-question", faqHTML)}
+      <div class="guide-actions">
+        <a class="btn btn-primary" href="${escapeHtml(openUrl)}" target="_blank" rel="noopener">
+          <i class="ph ph-arrow-square-out"></i>開啟工具
+        </a>
+        ${canPersonalize ? `
+          <button type="button" class="btn btn-ghost" data-guide-to-personalize="${escapeHtml(tool.id)}">
+            <i class="ph ph-sliders-horizontal"></i>個人化設定
+          </button>
+        ` : ""}
+      </div>
+    `;
+  }
+
+  function openGuide(toolId) {
+    const tool = TOOLS.find(t => t.id === toolId);
+    if (!tool) return;
+    guideTitle.textContent = `${tool.name} 使用說明`;
+    guideSub.textContent = tool.audience ? `適合：${tool.audience}` : "第一次用先看這裡";
+    guideBody.innerHTML = guideHTML(tool);
+    openBackdrop(guideBackdrop);
+  }
+
+  function closeGuide() { closeBackdrop(guideBackdrop); }
+
+  document.querySelector("[data-guide-close]").addEventListener("click", closeGuide);
+
+  guideBackdrop.addEventListener("click", (e) => {
+    if (e.target === guideBackdrop) closeGuide();
+  });
+
+  // 說明看完直接接到個人化，不用關掉再回卡片找按鈕
+  guideBody.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-guide-to-personalize]");
+    if (!btn) return;
+    const id = btn.dataset.guideToPersonalize;
+    closeGuide();
+    openPersonalize(id);
+  });
+
   /* ---------- 選擇顯示哪些工具 ---------- */
   const visibilityBackdrop = document.querySelector("[data-visibility-backdrop]");
   const visibilityList = document.querySelector("[data-visibility-list]");
@@ -1810,11 +2368,13 @@
   }
 
   document.addEventListener("keydown", (e) => {
-    const openBd = [backdrop, visibilityBackdrop].find(bd => bd.classList.contains("open"));
+    const openBd = [backdrop, visibilityBackdrop, guideBackdrop].find(bd => bd.classList.contains("open"));
     if (!openBd) return;
 
     if (e.key === "Escape") {
-      if (openBd === backdrop) closeModal(); else closeVisibility();
+      if (openBd === backdrop) closeModal();
+      else if (openBd === guideBackdrop) closeGuide();
+      else closeVisibility();
       return;
     }
 
